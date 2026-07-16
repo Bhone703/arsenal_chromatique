@@ -130,6 +130,17 @@ input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass)
 .paint-info{flex:1; min-width:0;}
 .paint-name{font-size:14.5px; font-weight:600; color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px;}
 .paint-name .qty-badge{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--brass); background:rgba(184,146,90,0.12); border:1px solid var(--line); padding:0px 5px; border-radius:8px; font-weight:600; flex-shrink:0;}
+.paint-name .metal-badge{font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--panel); background:var(--brass-bright); width:15px; height:15px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+.range-group-label{
+  font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--brass);
+  margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--line);
+}
+.range-group-label:first-child{margin-top:0;}
+.qty-stepper{display:flex; align-items:center; gap:6px; flex-shrink:0; background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:2px 4px;}
+.qty-btn{width:22px; height:22px; border-radius:6px; border:none; background:none; color:var(--bone); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+.qty-btn:active{background:var(--panel);}
+.qty-btn:disabled{opacity:0.3;}
+.qty-value{font-family:'JetBrains Mono',monospace; font-size:12.5px; min-width:14px; text-align:center; color:var(--brass);}
 .paint-meta{font-size:11px; color:var(--muted); margin-top:1px; text-transform:uppercase; letter-spacing:0.03em;}
 .paint-meta .hex{font-family:'JetBrains Mono',monospace; text-transform:none; letter-spacing:0;}
 .row-actions{display:flex; align-items:center; gap:6px; flex-shrink:0;}
@@ -175,6 +186,8 @@ input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass)
 .btn:disabled{opacity:0.4;}
 
 .mix-detail{margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);}
+.mix-proposal-label{font-family:'Oswald',sans-serif; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--brass); margin-bottom:8px;}
+.mix-proposal-sep{height:1px; background:var(--line); margin:16px 0;}
 .mix-compare{display:flex; align-items:center; gap:14px; margin-bottom:10px;}
 .compare-block{text-align:center;}
 .compare-block .swatch{width:52px; height:52px; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15), 0 0 0 1px var(--line);}
@@ -643,15 +656,15 @@ const CATALOG = [
   {name:"Waaagh! Flesh", brand:"Citadel", range:"Base", hex:"#1F6C33"},
   {name:"Zandri Dust", brand:"Citadel", range:"Base", hex:"#A98F5A"},
   {name:"Rhinox Hide", brand:"Citadel", range:"Base", hex:"#4B3A2C"},
-  {name:"Leadbelcher", brand:"Citadel", range:"Base", hex:"#8F8F8F"},
-  {name:"Retributor Armour", brand:"Citadel", range:"Base", hex:"#9C7A32"},
+  {name:"Leadbelcher", brand:"Citadel", range:"Base", hex:"#8F8F8F", metallic:true},
+  {name:"Retributor Armour", brand:"Citadel", range:"Base", hex:"#9C7A32", metallic:true},
   {name:"Averland Sunset", brand:"Citadel", range:"Base", hex:"#E8A733"},
   {name:"Khorne Red", brand:"Citadel", range:"Base", hex:"#5C0A0A"},
   {name:"The Fang", brand:"Citadel", range:"Base", hex:"#2E4756"},
   {name:"Kantor Blue", brand:"Citadel", range:"Base", hex:"#12253F"},
   {name:"Incubi Darkness", brand:"Citadel", range:"Base", hex:"#1B3B36"},
-  {name:"Warplock Bronze", brand:"Citadel", range:"Base", hex:"#5A4324"},
-  {name:"Balthasar Gold", brand:"Citadel", range:"Base", hex:"#7A5B25"},
+  {name:"Warplock Bronze", brand:"Citadel", range:"Base", hex:"#5A4324", metallic:true},
+  {name:"Balthasar Gold", brand:"Citadel", range:"Base", hex:"#7A5B25", metallic:true},
   {name:"Screamer Pink", brand:"Citadel", range:"Base", hex:"#C13584"},
   {name:"Naggaroth Night", brand:"Citadel", range:"Base", hex:"#3B2E52"},
 
@@ -678,7 +691,7 @@ const CATALOG = [
   {name:"Ceramite White", brand:"Citadel", range:"Base", hex:"#F0F0F0"},
   {name:"Ratskin Flesh", brand:"Citadel", range:"Base", hex:"#8A6248"},
   {name:"Rakarth Flesh", brand:"Citadel", range:"Base", hex:"#8F8878"},
-  {name:"Screaming Bell", brand:"Citadel", range:"Base", hex:"#8A6A3E"},
+  {name:"Screaming Bell", brand:"Citadel", range:"Base", hex:"#8A6A3E", metallic:true},
 
   // --- CITADEL / LAYER ---
   {name:"Evil Sunz Scarlet", brand:"Citadel", range:"Layer", hex:"#C1121C"},
@@ -747,14 +760,14 @@ const CATALOG = [
   {name:"Skavenblight Dinge", brand:"Citadel", range:"Layer", hex:"#35403C"},
   {name:"Stormvermin Fur", brand:"Citadel", range:"Layer", hex:"#4E5A5E"},
   {name:"Pallid Wych Flesh", brand:"Citadel", range:"Layer", hex:"#B8C2C4"},
-  {name:"Iron Breaker", brand:"Citadel", range:"Layer", hex:"#8E96A0"},
-  {name:"Runefang Steel", brand:"Citadel", range:"Layer", hex:"#B8C0C4"},
-  {name:"Gehenna's Gold", brand:"Citadel", range:"Layer", hex:"#C99A3C"},
-  {name:"Auric Armour Gold", brand:"Citadel", range:"Layer", hex:"#D4B04A"},
-  {name:"Hashut Copper", brand:"Citadel", range:"Layer", hex:"#8A4A2E"},
-  {name:"Sycorax Bronze", brand:"Citadel", range:"Layer", hex:"#C99A6E"},
-  {name:"Brass Scorpion", brand:"Citadel", range:"Layer", hex:"#8A5A2E"},
-  {name:"Runelord Brass", brand:"Citadel", range:"Layer", hex:"#A87A3C"},
+  {name:"Iron Breaker", brand:"Citadel", range:"Layer", hex:"#8E96A0", metallic:true},
+  {name:"Runefang Steel", brand:"Citadel", range:"Layer", hex:"#B8C0C4", metallic:true},
+  {name:"Gehenna's Gold", brand:"Citadel", range:"Layer", hex:"#C99A3C", metallic:true},
+  {name:"Auric Armour Gold", brand:"Citadel", range:"Layer", hex:"#D4B04A", metallic:true},
+  {name:"Hashut Copper", brand:"Citadel", range:"Layer", hex:"#8A4A2E", metallic:true},
+  {name:"Sycorax Bronze", brand:"Citadel", range:"Layer", hex:"#C99A6E", metallic:true},
+  {name:"Brass Scorpion", brand:"Citadel", range:"Layer", hex:"#8A5A2E", metallic:true},
+  {name:"Runelord Brass", brand:"Citadel", range:"Layer", hex:"#A87A3C", metallic:true},
   {name:"Russ Grey", brand:"Citadel", range:"Layer", hex:"#4A6C7A"},
   {name:"Pink Horror", brand:"Citadel", range:"Layer", hex:"#C23A78"},
 
@@ -818,8 +831,8 @@ const CATALOG = [
 
   // --- CITADEL / DRY ---
   {name:"Ryza Rust", brand:"Citadel", range:"Dry", hex:"#9C4A1E"},
-  {name:"Necron Compound", brand:"Citadel", range:"Dry", hex:"#5A6B6B"},
-  {name:"Stormhost Silver", brand:"Citadel", range:"Dry", hex:"#C7C9CB"},
+  {name:"Necron Compound", brand:"Citadel", range:"Dry", hex:"#5A6B6B", metallic:true},
+  {name:"Stormhost Silver", brand:"Citadel", range:"Dry", hex:"#C7C9CB", metallic:true},
   {name:"Hexos Palesun", brand:"Citadel", range:"Dry", hex:"#D9C468"},
   {name:"Kindleflame", brand:"Citadel", range:"Dry", hex:"#E8825A"},
   {name:"Lucius Lilac", brand:"Citadel", range:"Dry", hex:"#A88EC4"},
@@ -845,7 +858,7 @@ const CATALOG = [
   {name:"Turquoise Siren", brand:"Army Painter", range:"Warpaints", hex:"#1FA8A0"},
 
   // --- VALLEJO / MODEL COLOR ---
-  {name:"Gun Metal", brand:"Vallejo", range:"Model Color", code:"70.863", hex:"#4A4A4E"},
+  {name:"Gun Metal", brand:"Vallejo", range:"Model Color", code:"70.863", hex:"#4A4A4E", metallic:true},
   {name:"Refractive Green", brand:"Vallejo", range:"Model Color", code:"70.890", hex:"#3A6E4A"},
   {name:"Azure", brand:"Vallejo", range:"Model Color", code:"70.902", hex:"#2E7EBF"},
   {name:"Yellow Ochre", brand:"Vallejo", range:"Model Color", code:"70.913", hex:"#C89A3C"},
@@ -860,8 +873,8 @@ const CATALOG = [
   {name:"Flat Green", brand:"Vallejo", range:"Model Color", code:"70.968", hex:"#3C6B33"},
   {name:"Buff", brand:"Vallejo", range:"Model Color", code:"70.976", hex:"#C9A96A"},
   {name:"Flat Brown", brand:"Vallejo", range:"Model Color", code:"70.984", hex:"#6B4A2E"},
-  {name:"Gold", brand:"Vallejo", range:"Model Color", code:"70.996", hex:"#A9832E"},
-  {name:"Silver", brand:"Vallejo", range:"Model Color", code:"70.997", hex:"#B8B8B8"},
+  {name:"Gold", brand:"Vallejo", range:"Model Color", code:"70.996", hex:"#A9832E", metallic:true},
+  {name:"Silver", brand:"Vallejo", range:"Model Color", code:"70.997", hex:"#B8B8B8", metallic:true},
 
   // --- VALLEJO / WASH FX ---
   {name:"Light Rust", brand:"Vallejo", range:"Wash FX", code:"76.505", hex:"#8C4A22", mixable:false},
@@ -1078,6 +1091,7 @@ async function loadState(){
 
   applyRenames();
   applyRangeFixes();
+  applyMetallicFlags();
   mergeCatalog();
 
   const alreadyImported = lsGet(LS_KEYS.importFlag, false);
@@ -1091,7 +1105,7 @@ async function loadState(){
   if(hasGithubConfig()){
     setSyncStatus('syncing');
     const cloud = await loadFromCloud();
-    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); mergeCatalog(); }
+    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); applyMetallicFlags(); mergeCatalog(); }
     if(cloud && Array.isArray(cloud.mixes)){ mixes = cloud.mixes; }
     savePaintsLocal();
     saveMixesLocal();
@@ -1109,10 +1123,17 @@ function mergeCatalog(){
       paints.push({
         id: uid(), name:c.name, brand:c.brand, range:c.range, hex:c.hex,
         code:c.code||null, qty:1, owned:false, custom:false, toBuy:false,
-        mixable: c.mixable !== false
+        mixable: c.mixable !== false, metallic: c.metallic === true
       });
       existing.add(k);
     }
+  });
+}
+function applyMetallicFlags(){
+  const metallicKeys = new Set(CATALOG.filter(c=>c.metallic===true).map(c=>c.brand+'|'+c.name.toLowerCase()+'|'+(c.code||'')));
+  paints.forEach(p=>{
+    const k = p.brand+'|'+p.name.toLowerCase()+'|'+(p.code||'');
+    if(metallicKeys.has(k)) p.metallic = true;
   });
 }
 function applyImport(){
@@ -1167,24 +1188,50 @@ function colorDistance(hexA, hexB){
 
 const TRIPLE_RATIOS = [[0.34,0.33,0.33],[0.5,0.25,0.25],[0.25,0.5,0.25],[0.25,0.25,0.5],[0.6,0.2,0.2],[0.2,0.6,0.2],[0.2,0.2,0.6]];
 
-function findBestMix(targetHex, owned){
-  let best = {distance: Infinity, components: null};
+// Gammes exclues du mélange : ce sont des produits techniques (textures, médiums, effets),
+// pas des teintes destinées à être mélangées pour approcher une autre couleur.
+const NON_MIXING_RANGES = ['Technical','Texture','Spray'];
+
+function isMixableCandidate(paint, targetIsMetallic){
+  if(paint.mixable === false) return false;
+  if(NON_MIXING_RANGES.includes(paint.range)) return false;
+  if(paint.metallic && !targetIsMetallic) return false;
+  return true;
+}
+function signatureOf(components){
+  return components.map(c=>c.paint.id).sort().join('+');
+}
+
+// Explore toutes les combinaisons simples/doubles/triples parmi "owned" et renvoie
+// une liste triée de mélanges candidats DISTINCTS (une seule variante de ratio conservée
+// par combinaison de pots, la plus proche de la teinte cible).
+function collectMixCandidates(targetHex, owned){
+  const bestByCombo = new Map();
+  const consider = (components, distance)=>{
+    const sig = signatureOf(components);
+    const prev = bestByCombo.get(sig);
+    if(!prev || distance < prev.distance){
+      bestByCombo.set(sig, {distance, components});
+    }
+  };
+
   owned.forEach(p=>{
-    const d = colorDistance(p.hex, targetHex);
-    if(d < best.distance) best = {distance:d, components:[{paint:p, pct:100}]};
+    consider([{paint:p, pct:100}], colorDistance(p.hex, targetHex));
   });
+
   for(let i=0;i<owned.length;i++){
     for(let j=i+1;j<owned.length;j++){
       const c1 = hexToRgb(owned[i].hex), c2 = hexToRgb(owned[j].hex);
+      let bestRatio = null, bestD = Infinity;
       for(let ratio=10; ratio<=90; ratio+=10){
         const mixed = rgbToHex(mixRgb(c1,c2,ratio));
         const d = colorDistance(mixed, targetHex);
-        if(d < best.distance){
-          best = {distance:d, components:[{paint:owned[i], pct:ratio},{paint:owned[j], pct:100-ratio}]};
-        }
+        if(d < bestD){ bestD = d; bestRatio = ratio; }
       }
+      consider([{paint:owned[i], pct:bestRatio},{paint:owned[j], pct:100-bestRatio}], bestD);
     }
   }
+
   if(owned.length <= 45){
     for(let i=0;i<owned.length;i++){
       const c1 = hexToRgb(owned[i].hex);
@@ -1192,24 +1239,74 @@ function findBestMix(targetHex, owned){
         const c2 = hexToRgb(owned[j].hex);
         for(let k=j+1;k<owned.length;k++){
           const c3 = hexToRgb(owned[k].hex);
+          let bestSet = null, bestD = Infinity;
           for(const ratioSet of TRIPLE_RATIOS){
-            const p1=ratioSet[0], p2=ratioSet[1], p3=ratioSet[2];
-            const mixed = rgbToHex(mixRgbTriple(c1,c2,c3,p1,p2,p3));
+            const mixed = rgbToHex(mixRgbTriple(c1,c2,c3,ratioSet[0],ratioSet[1],ratioSet[2]));
             const d = colorDistance(mixed, targetHex);
-            if(d < best.distance){
-              best = {distance:d, components:[
-                {paint:owned[i], pct:Math.round(p1*100)},
-                {paint:owned[j], pct:Math.round(p2*100)},
-                {paint:owned[k], pct:Math.round(p3*100)}
-              ]};
-            }
+            if(d < bestD){ bestD = d; bestSet = ratioSet; }
           }
+          consider([
+            {paint:owned[i], pct:Math.round(bestSet[0]*100)},
+            {paint:owned[j], pct:Math.round(bestSet[1]*100)},
+            {paint:owned[k], pct:Math.round(bestSet[2]*100)}
+          ], bestD);
         }
       }
     }
   }
-  return best;
+
+  return [...bestByCombo.values()].sort((a,b)=>a.distance-b.distance);
 }
+
+// Construit jusqu'à 3 propositions de mélange pour une teinte cible :
+// 1) la meilleure approximation toutes marques possédées confondues,
+// 2) une version 100% Citadel (si elle diffère et si des peintures Citadel sont disponibles),
+// 3) une alternative (combinaison différente) pour laisser le choix.
+function buildMixProposals(target){
+  const targetIsMetallic = !!target.metallic;
+  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, targetIsMetallic));
+  if(pool.length === 0) return [];
+
+  const allCandidates = collectMixCandidates(target.hex, pool);
+  if(allCandidates.length === 0) return [];
+
+  const proposals = [];
+  const usedSigs = new Set();
+
+  const best = allCandidates[0];
+  const bestIsAllCitadel = best.components.every(c=>c.paint.brand==='Citadel');
+  proposals.push({
+    ...best,
+    label: bestIsAllCitadel ? 'Meilleure approximation · 100% Citadel' : 'Meilleure approximation',
+    citadelOnly: bestIsAllCitadel
+  });
+  usedSigs.add(signatureOf(best.components));
+
+  if(!bestIsAllCitadel){
+    const citadelPool = pool.filter(p=>p.brand==='Citadel');
+    if(citadelPool.length > 0){
+      const citadelCandidates = collectMixCandidates(target.hex, citadelPool);
+      if(citadelCandidates.length > 0){
+        const topCitadel = citadelCandidates[0];
+        const sig = signatureOf(topCitadel.components);
+        if(!usedSigs.has(sig)){
+          proposals.push({ ...topCitadel, label: '100% Citadel', citadelOnly: true });
+          usedSigs.add(sig);
+        }
+      }
+    }
+  }
+
+  const alt = allCandidates.find(c => !usedSigs.has(signatureOf(c.components)));
+  if(alt){
+    const altIsAllCitadel = alt.components.every(c=>c.paint.brand==='Citadel');
+    proposals.push({ ...alt, label: 'Alternative', citadelOnly: altIsAllCitadel });
+    usedSigs.add(signatureOf(alt.components));
+  }
+
+  return proposals.slice(0,3);
+}
+
 function mixedHexFromComponents(components){
   if(components.length === 1) return components[0].paint.hex;
   if(components.length === 2){
@@ -1239,6 +1336,11 @@ function renderBrandChips(){
 function cartIcon(){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>`;
 }
+const RANGE_ORDER = ['Base','Layer','Contrast','Shade','Technical','Texture','Dry','Glaze','Spray'];
+function rangeSortIndex(range){
+  const i = RANGE_ORDER.indexOf(range);
+  return i === -1 ? RANGE_ORDER.length : i;
+}
 function renderStock(){
   renderBrandChips();
   document.querySelectorAll('#ownedChips .chip').forEach(c=>{
@@ -1251,58 +1353,99 @@ function renderStock(){
     if(stockFilter.owned==='no' && p.owned) return false;
     if(q && !(p.name.toLowerCase().includes(q) || (p.code||'').includes(q))) return false;
     return true;
-  }).sort((a,b)=> (b.owned - a.owned) || a.name.localeCompare(b.name));
+  }).sort((a,b)=>
+    a.brand.localeCompare(b.brand) ||
+    (rangeSortIndex(a.range) - rangeSortIndex(b.range)) ||
+    (a.range||'').localeCompare(b.range||'') ||
+    (b.owned - a.owned) ||
+    a.name.localeCompare(b.name)
+  );
 
   const listEl = document.getElementById('stockList');
   if(list.length===0){
     listEl.innerHTML = `<div class="empty-state"><div class="glyph">◌</div><p>Aucune peinture ne correspond à ces filtres.</p></div>`;
-  } else {
-    listEl.innerHTML = list.map(p => {
-      const metaBits = [p.brand, p.range||'—'];
-      if(p.code) metaBits.push(p.code);
-      return `
+    updateStockCount();
+    return;
+  }
+
+  let html = '';
+  let currentGroup = null;
+  list.forEach(p=>{
+    const groupKey = p.brand + '|' + (p.range || '—');
+    if(groupKey !== currentGroup){
+      currentGroup = groupKey;
+      const groupLabel = stockFilter.brand === 'all' ? `${p.brand} · ${p.range || '—'}` : (p.range || '—');
+      html += `<div class="range-group-label">${escapeHtml(groupLabel)}</div>`;
+    }
+    const metaBits = [p.brand, p.range||'—'];
+    if(p.code) metaBits.push(p.code);
+    html += `
       <div class="paint-row">
         <div class="pot-lid ${p.owned?'':'unowned'}" style="background:${p.hex}"></div>
         <div class="paint-info">
-          <div class="paint-name">${escapeHtml(p.name)}${(p.owned && p.qty>1) ? `<span class="qty-badge">×${p.qty}</span>` : ''}</div>
+          <div class="paint-name">${escapeHtml(p.name)}${p.metallic ? '<span class="metal-badge" title="Peinture métallique">M</span>' : ''}</div>
           <div class="paint-meta">${metaBits.map(escapeHtml).join(' · ')} · <span class="hex">${p.hex}</span></div>
         </div>
         <div class="row-actions">
           ${!p.owned ? `<div class="cart-toggle ${p.toBuy?'on':''}" data-cart="${p.id}" title="Ajouter à la liste de courses">${cartIcon()}</div>` : ''}
+          ${p.owned ? `
+            <div class="qty-stepper">
+              <button class="qty-btn" data-qty-dec="${p.id}" ${p.qty<=1?'disabled':''}>&minus;</button>
+              <span class="qty-value">${p.qty}</span>
+              <button class="qty-btn" data-qty-inc="${p.id}">+</button>
+            </div>
+          ` : ''}
           <div class="owned-toggle ${p.owned?'on':''}" data-id="${p.id}"><div class="knob"></div></div>
           ${p.custom ? `<button class="del-btn" data-del="${p.id}">&times;</button>` : ''}
         </div>
       </div>
     `;
-    }).join('');
-    listEl.querySelectorAll('.owned-toggle').forEach(t=>{
-      t.onclick = async ()=>{
-        const paint = paints.find(x=>x.id===t.dataset.id);
-        paint.owned = !paint.owned;
-        if(paint.owned) paint.toBuy = false;
+  });
+  listEl.innerHTML = html;
+
+  listEl.querySelectorAll('.owned-toggle').forEach(t=>{
+    t.onclick = async ()=>{
+      const paint = paints.find(x=>x.id===t.dataset.id);
+      paint.owned = !paint.owned;
+      if(paint.owned){ paint.toBuy = false; if(!paint.qty) paint.qty = 1; }
+      await savePaints();
+      renderStock(); renderSuggestions(); renderShoppingList();
+    };
+  });
+  listEl.querySelectorAll('[data-cart]').forEach(t=>{
+    t.onclick = async ()=>{
+      const paint = paints.find(x=>x.id===t.dataset.cart);
+      paint.toBuy = !paint.toBuy;
+      await savePaints();
+      renderStock(); renderShoppingList();
+    };
+  });
+  listEl.querySelectorAll('[data-qty-inc]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const paint = paints.find(x=>x.id===btn.dataset.qtyInc);
+      paint.qty = (paint.qty||1) + 1;
+      await savePaints();
+      renderStock();
+    };
+  });
+  listEl.querySelectorAll('[data-qty-dec]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const paint = paints.find(x=>x.id===btn.dataset.qtyDec);
+      paint.qty = Math.max(1, (paint.qty||1) - 1);
+      await savePaints();
+      renderStock();
+    };
+  });
+  listEl.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      if(confirm('Retirer définitivement cette peinture de votre catalogue ?')){
+        paints = paints.filter(x=>x.id!==btn.dataset.del);
         await savePaints();
         renderStock(); renderSuggestions(); renderShoppingList();
-      };
-    });
-    listEl.querySelectorAll('[data-cart]').forEach(t=>{
-      t.onclick = async ()=>{
-        const paint = paints.find(x=>x.id===t.dataset.cart);
-        paint.toBuy = !paint.toBuy;
-        await savePaints();
-        renderStock(); renderShoppingList();
-      };
-    });
-    listEl.querySelectorAll('[data-del]').forEach(btn=>{
-      btn.onclick = async (e)=>{
-        e.stopPropagation();
-        if(confirm('Retirer définitivement cette peinture de votre catalogue ?')){
-          paints = paints.filter(x=>x.id!==btn.dataset.del);
-          await savePaints();
-          renderStock(); renderSuggestions(); renderShoppingList();
-        }
-      };
-    });
-  }
+      }
+    };
+  });
   updateStockCount();
 }
 function updateStockCount(){
@@ -1315,10 +1458,10 @@ function escapeHtml(s){
 /* ============================= RENDER: SUGGESTIONS ============================= */
 function renderSuggestions(){
   const q = (document.getElementById('suggestSearch').value||'').trim().toLowerCase();
-  const missing = paints.filter(p=> p.brand==='Citadel' && p.mixable!==false && !p.owned && (!q || p.name.toLowerCase().includes(q)))
+  const missing = paints.filter(p=> p.brand==='Citadel' && p.mixable!==false && !NON_MIXING_RANGES.includes(p.range) && !p.owned && (!q || p.name.toLowerCase().includes(q)))
     .sort((a,b)=>a.name.localeCompare(b.name));
   const el = document.getElementById('suggestList');
-  const owned = paints.filter(p=>p.owned && p.mixable!==false);
+  const owned = paints.filter(p=>p.owned && isMixableCandidate(p, false));
 
   if(missing.length===0){
     const msg = owned.length
@@ -1353,41 +1496,53 @@ function renderSuggestions(){
 function renderSuggestDetail(paintId){
   const target = paints.find(p=>p.id===paintId);
   if(!target) return;
-  const owned = paints.filter(p=>p.owned && p.mixable!==false);
   const container = document.getElementById('detail-'+paintId);
   if(!container) return;
-  if(owned.length===0){
-    container.innerHTML = `<div class="mix-detail"><p class="recipe-note">Ajoutez d'abord des peintures possédées pour générer une suggestion.</p></div>`;
+
+  const proposals = buildMixProposals(target);
+  if(proposals.length===0){
+    container.innerHTML = `<div class="mix-detail"><p class="recipe-note">Aucune peinture possédée ne peut servir de base à un mélange pour cette teinte (les peintures techniques et, sauf teinte métallique, les peintures métalliques sont exclues du calcul). Ajoutez des peintures Base, Layer, Contrast, Shade ou Dry à votre stock.</p></div>`;
     return;
   }
-  const best = findBestMix(target.hex, owned);
-  const mixedHex = mixedHexFromComponents(best.components);
-  const quality = matchQuality(best.distance);
-  const isPoor = quality.cls === 'poor';
 
+  const bestQuality = matchQuality(proposals[0].distance);
   container.innerHTML = `
     <div class="mix-detail">
-      <div class="mix-compare">
-        <div class="compare-block"><div class="swatch" style="background:${target.hex}"></div><div class="cap">Cible</div></div>
-        <div class="arrow">→</div>
-        <div class="compare-block"><div class="swatch" style="background:${mixedHex}"></div><div class="cap">Mélange</div></div>
-        <div class="match-badge ${quality.cls}">${quality.label}</div>
-      </div>
-      <ul class="recipe-list">
-        ${best.components.map(c=>`<li><span class="dot" style="background:${c.paint.hex}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
-      </ul>
-      <div class="recipe-note">Estimation calculée à partir de vos peintures en stock (moyenne pondérée des teintes). À affiner à l'oeil sur palette humide — le rendu réel dépend du mélange physique des pigments.</div>
-      <button class="btn primary small" data-try="${target.id}">Enregistrer un essai de ce mélange</button>
+      ${proposals.map((prop, idx)=>{
+        const mixedHex = mixedHexFromComponents(prop.components);
+        const quality = matchQuality(prop.distance);
+        return `
+        <div class="mix-proposal">
+          <div class="mix-proposal-label">${escapeHtml(prop.label)}</div>
+          <div class="mix-compare">
+            <div class="compare-block"><div class="swatch" style="background:${target.hex}"></div><div class="cap">Cible</div></div>
+            <div class="arrow">→</div>
+            <div class="compare-block"><div class="swatch" style="background:${mixedHex}"></div><div class="cap">Mélange</div></div>
+            <div class="match-badge ${quality.cls}">${quality.label}</div>
+          </div>
+          <ul class="recipe-list">
+            ${prop.components.map(c=>`<li><span class="dot" style="background:${c.paint.hex}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
+          </ul>
+          <button class="btn primary small" data-try="${idx}">Enregistrer cet essai</button>
+        </div>
+        ${idx < proposals.length-1 ? '<div class="mix-proposal-sep"></div>' : ''}
+      `;}).join('')}
+      <div class="recipe-note">Estimations calculées à partir de vos peintures en stock (moyenne pondérée des teintes). À affiner à l'oeil sur palette humide — le rendu réel dépend du mélange physique des pigments.</div>
       <div id="reco-${target.id}"></div>
     </div>
   `;
-  container.querySelector('[data-try]').onclick = ()=>{
-    pendingComment = { target, components: best.components, mixedHex };
-    document.getElementById('commentSub').textContent = `${target.name} — ${best.components.map(c=>c.pct+'% '+c.paint.name).join(' + ')}`;
-    document.getElementById('cText').value = '';
-    openModal('modalComment');
-  };
-  if(isPoor){
+  proposals.forEach((prop, idx)=>{
+    const btn = container.querySelector(`[data-try="${idx}"]`);
+    if(!btn) return;
+    btn.onclick = ()=>{
+      const mixedHex = mixedHexFromComponents(prop.components);
+      pendingComment = { target, components: prop.components, mixedHex };
+      document.getElementById('commentSub').textContent = `${target.name} — ${prop.components.map(c=>c.pct+'% '+c.paint.name).join(' + ')}`;
+      document.getElementById('cText').value = '';
+      openModal('modalComment');
+    };
+  });
+  if(bestQuality.cls === 'poor'){
     renderBuyReco(target);
   }
 }
@@ -1399,8 +1554,8 @@ function renderBuyReco(target){
     holder.innerHTML = `
       <div class="buy-reco ${already?'added':''}">
         <div class="buy-text">${already
-          ? `<b>Déjà dans la liste de courses.</b> Ce mélange s'éloigne trop de la teinte originale pour être approché fidèlement avec votre stock actuel.`
-          : `<b>Mélange peu fiable.</b> Cette teinte s'éloigne trop de ce que votre stock permet d'approcher — mieux vaut acheter directement le pot original.`}
+          ? `<b>Déjà dans la liste de courses.</b> Ces mélanges s'éloignent trop de la teinte originale pour être approchés fidèlement avec votre stock actuel.`
+          : `<b>Mélanges peu fiables.</b> Cette teinte s'éloigne trop de ce que votre stock permet d'approcher — mieux vaut acheter directement le pot original.`}
         </div>
         <button class="btn ${already?'small':'warn small'}" data-buyreco="${target.id}">${already ? 'Retirer de la liste de courses' : 'Ajouter à la liste de courses'}</button>
       </div>`;
@@ -1932,7 +2087,7 @@ document.getElementById('syncConnectBtn').onclick = async ()=>{
     await testGithubConnection(gistId, token);
     setGithubConfig({ gistId, token });
     const cloud = await loadFromCloud();
-    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); mergeCatalog(); savePaintsLocal(); }
+    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); applyMetallicFlags(); mergeCatalog(); savePaintsLocal(); }
     if(cloud && Array.isArray(cloud.mixes)){ mixes = cloud.mixes; saveMixesLocal(); }
     await pushToCloud();
     renderStock(); renderSuggestions(); renderMixes(); renderShoppingList();
