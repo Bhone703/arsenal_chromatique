@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Arsenal Chromatique</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#131110">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arsenal">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --void:#131110;
+  --panel:#1c1917;
+  --panel-raised:#242019;
+  --line:#332c24;
+  --brass:#b8925a;
+  --brass-bright:#d9ac72;
+  --rust:#8c2f2f;
+  --rust-bright:#b0483f;
+  --bone:#e9e2d3;
+  --bone-dim:#a89e8c;
+  --muted:#6f6659;
+  --ok:#5c8a4f;
+  --warn:#c1861c;
+  --danger:#a63f3f;
+  --radius:10px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--void); color:var(--bone); font-family:'Inter',sans-serif; height:100%;}
+body{
+  background-image:
+    radial-gradient(ellipse at top, rgba(184,146,90,0.06), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 14px);
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.display{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.04em;}
+
+#app{max-width:720px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding-bottom:calc(72px + var(--safe-bottom));}
+
+/* HEADER */
+header.top{
+  padding:18px 18px 14px;
+  border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:20;
+  background:linear-gradient(180deg, var(--void) 80%, rgba(19,17,16,0.92));
+  backdrop-filter: blur(6px);
+}
+.brand-row{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+.brand-title{font-family:'Oswald',sans-serif; font-weight:700; font-size:22px; letter-spacing:0.06em; text-transform:uppercase; color:var(--bone); margin:0; display:flex; align-items:center; gap:9px;}
+.brand-title .sigil{width:20px; height:20px; border-radius:50%; background:conic-gradient(from 210deg, var(--rust), var(--brass), var(--rust)); box-shadow:inset 0 0 0 2px var(--void), 0 0 0 1px var(--line);}
+.brand-sub{font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; margin-top:2px;}
+.header-right{display:flex; align-items:center; gap:10px;}
+.stock-count{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--brass); text-align:right; white-space:nowrap;}
+.stock-count b{color:var(--bone); font-size:15px; display:block;}
+.icon-btn{
+  width:34px; height:34px; border-radius:9px; border:1px solid var(--line); background:var(--panel);
+  color:var(--brass); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+}
+.icon-btn svg{width:17px; height:17px;}
+.icon-btn:active{transform:scale(0.94);}
+.sync-dot{position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--panel);}
+.sync-dot.sync-local{background:var(--muted);}
+.sync-dot.sync-ok{background:var(--ok);}
+.sync-dot.sync-error{background:var(--danger);}
+.sync-dot.sync-syncing{background:var(--warn); animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.35;}}
+
+/* BACKUP MODAL */
+.backup-block{background:var(--panel-raised); border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px; margin-bottom:12px;}
+.backup-block h4{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em; font-size:13px; color:var(--brass); margin:0 0 4px;}
+.backup-block p{font-size:12px; color:var(--muted); line-height:1.45; margin:0 0 11px;}
+.backup-actions{display:flex; gap:8px; flex-wrap:wrap;}
+.backup-actions .btn{flex:1; min-width:120px;}
+.file-drop{
+  border:1px dashed var(--line); border-radius:8px; padding:16px 12px; text-align:center; cursor:pointer;
+  color:var(--bone-dim); font-size:12.5px; position:relative;
+}
+.file-drop input[type="file"]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.file-drop.dragover{border-color:var(--brass); background:rgba(184,146,90,0.06);}
+.import-summary{font-size:12.5px; color:var(--bone); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:10px; line-height:1.5;}
+.import-summary b{color:var(--brass);}
+
+.hazard-rule{height:5px; margin-top:12px; border-radius:3px; background:repeating-linear-gradient(-45deg, var(--rust) 0 8px, var(--brass) 8px 16px); opacity:0.55;}
+
+/* MAIN */
+main{flex:1; padding:16px 16px 8px;}
+.view{display:none; animation:fadein 0.22s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+.section-label{font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--brass); margin:18px 0 8px; display:flex; align-items:center; gap:8px;}
+.section-label:first-child{margin-top:0;}
+.section-label::after{content:""; flex:1; height:1px; background:var(--line);}
+.section-label .count-pill{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); background:var(--panel); border:1px solid var(--line); padding:1px 7px; border-radius:10px;}
+
+/* SEARCH / FILTER BAR */
+.toolbar{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+input[type="text"], input[type="search"], select, textarea{
+  background:var(--panel); border:1px solid var(--line); color:var(--bone);
+  border-radius:8px; padding:10px 12px; font-size:14px; font-family:'Inter',sans-serif;
+  outline:none;
+}
+input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass);}
+.search-input{flex:1; min-width:120px;}
+.chip-row{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+.chip{
+  font-size:11.5px; letter-spacing:0.03em; padding:6px 11px; border-radius:20px; border:1px solid var(--line);
+  background:var(--panel); color:var(--bone-dim); cursor:pointer; user-select:none; white-space:nowrap;
+}
+.chip.active{background:var(--rust); border-color:var(--rust-bright); color:var(--bone); font-weight:600;}
+
+/* PAINT ROW */
+.paint-list{display:flex; flex-direction:column; gap:7px;}
+.paint-row{
+  display:flex; align-items:center; gap:11px; background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); padding:10px 12px; cursor:default;
+}
+.pot-lid{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; position:relative;
+  box-shadow: inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.4), 0 0 0 2px var(--void), 0 0 0 3px var(--line);
+}
+.pot-lid.unowned{opacity:0.28; filter:grayscale(0.6);}
+.paint-info{flex:1; min-width:0;}
+.paint-name{font-size:14.5px; font-weight:600; color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px;}
+.paint-name .qty-badge{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--brass); background:rgba(184,146,90,0.12); border:1px solid var(--line); padding:0px 5px; border-radius:8px; font-weight:600; flex-shrink:0;}
+.paint-meta{font-size:11px; color:var(--muted); margin-top:1px; text-transform:uppercase; letter-spacing:0.03em;}
+.paint-meta .hex{font-family:'JetBrains Mono',monospace; text-transform:none; letter-spacing:0;}
+.row-actions{display:flex; align-items:center; gap:6px; flex-shrink:0;}
+.owned-toggle{
+  width:44px; height:26px; border-radius:14px; background:var(--panel-raised); border:1px solid var(--line);
+  position:relative; flex-shrink:0; cursor:pointer;
+}
+.owned-toggle .knob{
+  position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--muted);
+  transition:transform 0.15s ease, background 0.15s ease;
+}
+.owned-toggle.on{background:rgba(92,138,79,0.25); border-color:var(--ok);}
+.owned-toggle.on .knob{transform:translateX(18px); background:var(--ok);}
+.cart-toggle{
+  width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--panel-raised);
+  color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+}
+.cart-toggle.on{background:rgba(193,134,28,0.16); border-color:var(--warn); color:var(--warn);}
+.cart-toggle svg{width:15px; height:15px;}
+.del-btn{background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:4px 6px; flex-shrink:0;}
+.del-btn:active{color:var(--danger);}
+
+.empty-state{text-align:center; padding:40px 20px; color:var(--muted);}
+.empty-state .glyph{font-size:34px; margin-bottom:8px; opacity:0.5;}
+.empty-state p{font-size:13px; line-height:1.5; max-width:280px; margin:0 auto;}
+
+/* SUGGESTION CARDS */
+.suggest-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:9px;}
+.suggest-head{display:flex; align-items:center; gap:11px;}
+.suggest-head .pot-lid{width:30px; height:30px;}
+.suggest-title{flex:1; font-size:14.5px; font-weight:600;}
+.suggest-title .meta{display:block; font-size:11px; color:var(--muted); font-weight:400; text-transform:uppercase; letter-spacing:0.03em; margin-top:1px;}
+.btn{
+  font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.02em;
+  padding:8px 14px; border-radius:7px; border:1px solid var(--line); background:var(--panel-raised); color:var(--bone);
+  cursor:pointer;
+}
+.btn:active{transform:scale(0.97);}
+.btn.primary{background:var(--rust); border-color:var(--rust-bright); color:#fff;}
+.btn.warn{background:var(--warn); border-color:#dba03a; color:#1a1408;}
+.btn.ghost{background:none;}
+.btn.small{padding:6px 10px; font-size:11.5px;}
+.btn:disabled{opacity:0.4;}
+
+.mix-detail{margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);}
+.mix-compare{display:flex; align-items:center; gap:14px; margin-bottom:10px;}
+.compare-block{text-align:center;}
+.compare-block .swatch{width:52px; height:52px; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15), 0 0 0 1px var(--line);}
+.compare-block .cap{font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-top:5px;}
+.arrow{color:var(--brass); font-size:18px;}
+.match-badge{font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 8px; border-radius:5px; margin-left:auto;}
+.match-badge.good{background:rgba(92,138,79,0.18); color:var(--ok);}
+.match-badge.mid{background:rgba(193,134,28,0.18); color:var(--warn);}
+.match-badge.poor{background:rgba(166,63,63,0.18); color:var(--danger);}
+.recipe-list{list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:6px;}
+.recipe-list li{display:flex; align-items:center; gap:9px; font-size:13.5px;}
+.recipe-list .dot{width:16px; height:16px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 1px var(--line);}
+.recipe-list .pct{font-family:'JetBrains Mono',monospace; color:var(--brass); width:38px; flex-shrink:0;}
+.recipe-note{font-size:11.5px; color:var(--muted); line-height:1.4; margin-bottom:10px;}
+.buy-reco{
+  margin-top:12px; padding:11px 12px; border-radius:8px; background:rgba(166,63,63,0.1); border:1px solid rgba(166,63,63,0.35);
+  display:flex; flex-direction:column; gap:9px;
+}
+.buy-reco .buy-text{font-size:12.5px; line-height:1.45; color:var(--bone);}
+.buy-reco .buy-text b{color:var(--danger);}
+.buy-reco.added{background:rgba(92,138,79,0.1); border-color:rgba(92,138,79,0.35);}
+.buy-reco.added .buy-text b{color:var(--ok);}
+
+/* SAVED MIXES */
+.mix-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px; margin-bottom:10px;}
+.mix-card-head{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+.mix-card-head .swatch{width:26px; height:26px; border-radius:50%; box-shadow:0 0 0 2px var(--void), 0 0 0 3px var(--line); flex-shrink:0;}
+.mix-card-title{flex:1; font-size:14px; font-weight:600;}
+.mix-card-title .date{display:block; font-size:10.5px; color:var(--muted); font-weight:400; margin-top:1px;}
+.mix-recipe-line{font-size:12px; color:var(--bone-dim); font-family:'JetBrains Mono',monospace; margin-bottom:8px;}
+.mix-comment{font-size:13px; color:var(--bone); background:var(--panel-raised); border-left:2px solid var(--brass); padding:8px 10px; border-radius:0 6px 6px 0; margin-bottom:8px; line-height:1.45; white-space:pre-wrap;}
+.mix-comment-log{margin-top:6px; padding-top:6px; border-top:1px solid var(--line);}
+.mix-comment-log .entry{font-size:12px; color:var(--bone-dim); margin-bottom:6px; padding-left:9px; border-left:2px solid var(--line); line-height:1.4;}
+.mix-comment-log .entry .d{color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; display:block; margin-bottom:1px;}
+.mix-actions{display:flex; gap:8px;}
+
+/* SHOPPING LIST */
+.shop-row{display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px;}
+.check-circle{
+  width:26px; height:26px; border-radius:50%; border:2px solid var(--line); flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; color:transparent;
+}
+.check-circle:active{transform:scale(0.92);}
+.check-circle svg{width:15px; height:15px;}
+.shop-hint{font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.5; padding:10px 12px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);}
+
+/* FORM / MODAL */
+.modal-backdrop{position:fixed; inset:0; background:rgba(10,9,8,0.72); z-index:50; display:flex; align-items:flex-end; justify-content:center;}
+.modal-backdrop.hidden{display:none;}
+.modal{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px 16px 0 0; width:100%; max-width:720px;
+  max-height:88vh; overflow-y:auto; padding:20px 18px calc(24px + var(--safe-bottom));
+  animation:slideup 0.2s ease; position:relative;
+}
+@keyframes slideup{from{transform:translateY(20px); opacity:0.6;} to{transform:translateY(0); opacity:1;}}
+.modal h3{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.04em; font-size:17px; margin:0 0 4px;}
+.modal .modal-sub{font-size:12px; color:var(--muted); margin-bottom:16px;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--brass); margin-bottom:6px;}
+.field input, .field select, .field textarea{width:100%;}
+.field textarea{resize:vertical; min-height:70px; font-family:'Inter',sans-serif; line-height:1.4;}
+.color-field{display:flex; gap:8px; align-items:center;}
+.color-field input[type="color"]{width:44px; height:40px; padding:2px; border-radius:8px; border:1px solid var(--line); background:var(--panel-raised); cursor:pointer;}
+.color-field input[type="text"]{flex:1;}
+.seg-control{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+.seg-control button{flex:1; padding:9px; background:var(--panel-raised); border:none; color:var(--bone-dim); font-size:12.5px; font-weight:600; cursor:pointer;}
+.seg-control button.active{background:var(--rust); color:#fff;}
+.lookup-btn{
+  width:100%; margin-bottom:6px; background:var(--panel-raised); border:1px dashed var(--brass);
+  color:var(--brass-bright); padding:11px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.lookup-btn:disabled{opacity:0.55;}
+.lookup-btn.spinning::before{
+  content:""; width:12px; height:12px; border-radius:50%; border:2px solid var(--brass); border-top-color:transparent;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.lookup-status{font-size:11.5px; line-height:1.4; padding:8px 10px; border-radius:6px; margin-bottom:14px; background:var(--panel-raised); border:1px solid var(--line); color:var(--bone-dim);}
+.lookup-status.ok{border-color:rgba(92,138,79,0.4); color:var(--ok);}
+.lookup-status.warn{border-color:rgba(193,134,28,0.4); color:var(--warn);}
+.lookup-status.err{border-color:rgba(166,63,63,0.4); color:var(--danger);}
+
+/* DISPLAY MODE CHOICES */
+.choice-row{display:flex; align-items:center; gap:12px; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background:var(--panel-raised); cursor:pointer; margin-bottom:8px;}
+.choice-row.active{border-color:var(--brass); background:rgba(184,146,90,0.08);}
+.choice-row .radio{width:18px; height:18px; border-radius:50%; border:2px solid var(--muted); flex-shrink:0; position:relative;}
+.choice-row.active .radio{border-color:var(--brass);}
+.choice-row.active .radio::after{content:""; position:absolute; inset:3px; border-radius:50%; background:var(--brass);}
+.choice-row .choice-text{flex:1;}
+.choice-row .choice-title{font-size:13.5px; font-weight:600; color:var(--bone);}
+.choice-row .choice-sub{font-size:11.5px; color:var(--muted); margin-top:1px; line-height:1.35;}
+.choice-row .choice-icon{width:26px; height:26px; flex-shrink:0; color:var(--brass); display:flex; align-items:center; justify-content:center;}
+.choice-row .choice-icon svg{width:22px; height:22px;}
+.modal-footer{display:flex; gap:10px; margin-top:6px;}
+.modal-footer .btn{flex:1;}
+.close-x{position:absolute; top:14px; right:14px; background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1;}
+
+/* BOTTOM NAV */
+nav.tabbar{
+  position:fixed; bottom:0; left:0; right:0; z-index:30;
+  background:rgba(28,25,23,0.94); backdrop-filter:blur(10px);
+  border-top:1px solid var(--line); padding-bottom:var(--safe-bottom);
+}
+.tabbar-inner{max-width:720px; margin:0 auto; display:flex;}
+.tab-btn{
+  flex:1; background:none; border:none; color:var(--muted); padding:10px 2px 8px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px; font-size:9.6px; text-transform:uppercase; letter-spacing:0.02em; font-family:'Inter',sans-serif; font-weight:600;
+  position:relative;
+}
+.tab-btn .icon{width:20px; height:20px; display:block;}
+.tab-btn.active{color:var(--brass-bright);}
+.tab-btn .badge{position:absolute; top:4px; right:calc(50% - 20px); background:var(--rust); color:#fff; font-size:9px; min-width:15px; height:15px; padding:0 3px; border-radius:8px; font-family:'JetBrains Mono',monospace; display:flex; align-items:center; justify-content:center;}
+
+.fab{
+  position:fixed; bottom:calc(84px + var(--safe-bottom)); right:20px; z-index:25;
+  width:52px; height:52px; border-radius:50%; background:var(--rust); border:1px solid var(--rust-bright);
+  color:#fff; font-size:26px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,0.4); max-width:720px;
+}
+.fab:active{transform:scale(0.94);}
+
+::-webkit-scrollbar{width:0; height:0;}
+
+/* ============================= DISPLAY MODES ============================= */
+/* Par défaut (et [data-display="phone"]) : iPhone SE 2020 & petits écrans — layout compact déjà défini plus haut. */
+[data-display="phone"] header.top{padding:14px 15px 12px;}
+[data-display="phone"] .brand-title{font-size:19px; gap:7px;}
+[data-display="phone"] .brand-title .sigil{width:17px; height:17px;}
+[data-display="phone"] main{padding:13px 13px 6px;}
+[data-display="phone"] .paint-row, [data-display="phone"] .shop-row{padding:9px 10px; gap:9px;}
+[data-display="phone"] .pot-lid{width:30px; height:30px;}
+[data-display="phone"] .modal{padding:16px 14px calc(20px + var(--safe-bottom));}
+
+/* --- iPad Pro 13" & Ordinateur de bureau : barre latérale + grille --- */
+[data-display="tablet"]{ --sidebar-w:210px; }
+[data-display="desktop"]{ --sidebar-w:240px; }
+
+[data-display="tablet"] #app, [data-display="desktop"] #app{
+  max-width:none; margin:0; padding-left:var(--sidebar-w); padding-bottom:28px;
+}
+[data-display="tablet"] header.top, [data-display="desktop"] header.top{
+  position:sticky;
+}
+[data-display="tablet"] main, [data-display="desktop"] main{
+  max-width:1000px; margin:0 auto; padding:22px 26px 10px;
+}
+[data-display="tablet"] .brand-title, [data-display="desktop"] .brand-title{font-size:24px;}
+
+[data-display="tablet"] nav.tabbar, [data-display="desktop"] nav.tabbar{
+  position:fixed; top:0; left:0; bottom:0; right:auto; width:var(--sidebar-w);
+  border-top:none; border-right:1px solid var(--line); padding-bottom:0;
+  display:flex; align-items:stretch;
+}
+[data-display="tablet"] .tabbar-inner, [data-display="desktop"] .tabbar-inner{
+  max-width:none; flex-direction:column; align-items:stretch; gap:5px; padding:100px 14px 20px; width:100%;
+}
+[data-display="tablet"] .tab-btn, [data-display="desktop"] .tab-btn{
+  flex-direction:row; justify-content:flex-start; gap:11px; padding:12px 13px; border-radius:9px;
+  font-size:13px; text-transform:none; letter-spacing:0.01em;
+}
+[data-display="tablet"] .tab-btn.active, [data-display="desktop"] .tab-btn.active{
+  background:var(--panel-raised); box-shadow:inset 2px 0 0 var(--brass-bright);
+}
+[data-display="tablet"] .tab-btn .icon, [data-display="desktop"] .tab-btn .icon{width:19px; height:19px;}
+[data-display="tablet"] .tab-btn .badge, [data-display="desktop"] .tab-btn .badge{position:static; margin-left:auto;}
+
+[data-display="tablet"] .fab, [data-display="desktop"] .fab{bottom:24px;}
+
+[data-display="tablet"] #stockList, [data-display="desktop"] #stockList,
+[data-display="tablet"] #shopList, [data-display="desktop"] #shopList{
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:9px;
+}
+[data-display="desktop"] #stockList, [data-display="desktop"] #shopList{
+  grid-template-columns:repeat(3, 1fr);
+}
+[data-display="tablet"] .toolbar, [data-display="desktop"] .toolbar{max-width:440px;}
+
+[data-display="tablet"] .modal-backdrop, [data-display="desktop"] .modal-backdrop{align-items:center;}
+[data-display="tablet"] .modal, [data-display="desktop"] .modal{
+  border-radius:16px; max-width:480px; max-height:82vh;
+}
+
+@media (max-width:680px){
+  [data-display="tablet"] #app, [data-display="desktop"] #app{padding-left:0;}
+  [data-display="tablet"] nav.tabbar, [data-display="desktop"] nav.tabbar{
+    position:fixed; top:auto; bottom:0; left:0; right:0; width:100%; height:auto;
+    border-right:none; border-top:1px solid var(--line);
+  }
+  [data-display="tablet"] .tabbar-inner, [data-display="desktop"] .tabbar-inner{
+    flex-direction:row; padding:6px 4px; align-items:stretch;
+  }
+  [data-display="tablet"] .tab-btn, [data-display="desktop"] .tab-btn{
+    flex-direction:column; text-align:center; font-size:9.6px; padding:8px 2px;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div class="brand-row">
+      <h1 class="brand-title"><span class="sigil"></span>Arsenal Chromatique</h1>
+      <div class="header-right">
+        <div class="stock-count"><b id="stockCountNum">0</b>peintures</div>
+        <button class="icon-btn" id="btnSync" title="Synchronisation GitHub" style="position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.91c-2.78.62-3.37-1.37-3.37-1.37-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.86.09-.66.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.05 0-1.12.39-2.03 1.03-2.74-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.62 1.03 2.74 0 3.92-2.34 4.79-4.57 5.04.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+          <span class="sync-dot sync-local" id="syncDot" title="Stockage local uniquement"></span>
+        </button>
+        <button class="icon-btn" id="btnDisplay" title="Optimiser l'affichage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </button>
+        <button class="icon-btn" id="btnBackup" title="Exporter / importer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="brand-sub">Gestion de peintures &amp; mélanges — Warhammer 40K</div>
+    <div class="hazard-rule"></div>
+  </header>
+
+  <main>
+
+    <!-- STOCK VIEW -->
+    <section class="view active" id="view-stock">
+      <div class="toolbar">
+        <input type="search" class="search-input" id="stockSearch" placeholder="Rechercher une peinture...">
+      </div>
+      <div class="chip-row" id="brandChips"></div>
+      <div class="chip-row" id="ownedChips">
+        <div class="chip active" data-owned="all">Tout</div>
+        <div class="chip" data-owned="yes">En stock</div>
+        <div class="chip" data-owned="no">Absentes</div>
+      </div>
+      <div class="section-label">Peintures</div>
+      <div class="paint-list" id="stockList"></div>
+    </section>
+
+    <!-- SUGGESTIONS VIEW -->
+    <section class="view" id="view-suggest">
+      <div class="toolbar">
+        <input type="search" class="search-input" id="suggestSearch" placeholder="Chercher une teinte Citadel manquante...">
+      </div>
+      <div class="section-label">Peintures Citadel absentes de votre stock</div>
+      <div class="paint-list" id="suggestList"></div>
+    </section>
+
+    <!-- MIXES VIEW -->
+    <section class="view" id="view-mixes">
+      <div class="section-label">Mélanges enregistrés</div>
+      <div class="paint-list" id="mixesList"></div>
+    </section>
+
+    <!-- SHOPPING LIST VIEW -->
+    <section class="view" id="view-shop">
+      <div class="shop-hint">Cochez une peinture ici depuis le Stock (icône panier) ou depuis une recommandation d'achat. Une fois achetée, validez-la : elle rejoint automatiquement votre stock.</div>
+      <div class="section-label">À acheter</div>
+      <div class="paint-list" id="shopList"></div>
+    </section>
+
+  </main>
+
+  <button class="fab" id="fabAdd" title="Ajouter une peinture">+</button>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-view="stock">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6v4l3 12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2l3-12V3z"/><path d="M9 3h6"/><path d="M7 15h10"/></svg>
+        Stock
+      </button>
+      <button class="tab-btn" data-view="suggest">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+        Mélanges
+      </button>
+      <button class="tab-btn" data-view="mixes">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v4l-6 8v5l-4 2v-7L4 8V4z"/></svg>
+        Mes essais
+      </button>
+      <button class="tab-btn" data-view="shop" style="position:relative;">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+        Courses
+        <span class="badge" id="shopBadge" style="display:none;">0</span>
+      </button>
+    </div>
+  </nav>
+
+</div>
+
+<!-- MODAL: add paint -->
+<div class="modal-backdrop hidden" id="modalAdd">
+  <div class="modal">
+    <button class="close-x" data-close="modalAdd">&times;</button>
+    <h3>Ajouter une peinture</h3>
+    <div class="modal-sub">Citadel, Vallejo, Army Painter ou autre marque.</div>
+    <div class="field">
+      <label>Nom</label>
+      <input type="text" id="fName" placeholder="ex. Heavy Charcoal">
+    </div>
+    <div class="field">
+      <label>Marque</label>
+      <select id="fBrand">
+        <option>Citadel</option>
+        <option>Vallejo</option>
+        <option>Army Painter</option>
+        <option>Autre</option>
+      </select>
+    </div>
+    <button type="button" class="btn lookup-btn" id="fLookupBtn">🔍 Rechercher automatiquement (gamme + teinte)</button>
+    <div class="lookup-status" id="fLookupStatus" style="display:none;"></div>
+    <div class="field">
+      <label>Gamme / type</label>
+      <input type="text" id="fRange" placeholder="ex. Base, Layer, Shade, Model Color, Warpaints...">
+    </div>
+    <div class="field">
+      <label>Référence (optionnel)</label>
+      <input type="text" id="fCode" placeholder="ex. 70.863">
+    </div>
+    <div class="field">
+      <label>Teinte</label>
+      <div class="color-field">
+        <input type="color" id="fColorPicker" value="#8c2f2f">
+        <input type="text" id="fColorHex" class="mono" value="#8C2F2F">
+      </div>
+    </div>
+    <div class="field">
+      <label>Statut</label>
+      <div class="seg-control" id="fStatus">
+        <button type="button" class="active" data-status="owned">En stock</button>
+        <button type="button" data-status="buy">À acheter</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-close="modalAdd">Annuler</button>
+      <button class="btn primary" id="fSaveBtn">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: comment mix -->
+<div class="modal-backdrop hidden" id="modalComment">
+  <div class="modal">
+    <button class="close-x" data-close="modalComment">&times;</button>
+    <h3>Enregistrer cet essai</h3>
+    <div class="modal-sub" id="commentSub"></div>
+    <div class="field">
+      <label>Commentaire / modifications apportées</label>
+      <textarea id="cText" placeholder="ex. J'ai réduit le blanc de 10%, ajouté une goutte de médium pour fluidifier, résultat un peu trop froid..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-close="modalComment">Annuler</button>
+      <button class="btn primary" id="cSaveBtn">Enregistrer le mélange</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: add note to existing mix -->
+<div class="modal-backdrop hidden" id="modalNote">
+  <div class="modal">
+    <button class="close-x" data-close="modalNote">&times;</button>
+    <h3>Ajouter une note</h3>
+    <div class="modal-sub">Consignez une nouvelle modification ou observation.</div>
+    <div class="field">
+      <label>Note</label>
+      <textarea id="nText" placeholder="ex. Essayé avec un glacis d'Agrax Earthshade par-dessus, bien meilleur rendu..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-close="modalNote">Annuler</button>
+      <button class="btn primary" id="nSaveBtn">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GitHub sync settings -->
+<div class="modal-backdrop hidden" id="modalSync">
+  <div class="modal">
+    <button class="close-x" data-close="modalSync">&times;</button>
+    <h3>Synchronisation GitHub</h3>
+    <div class="modal-sub">Vos peintures et mélanges sont stockés dans un Gist GitHub privé, ce qui les synchronise automatiquement entre vos appareils. Voir le fichier README fourni pour créer le Gist et le token.</div>
+    <div id="syncConfigured" style="display:none;">
+      <div class="lookup-status ok" style="margin-bottom:14px;">Synchronisation active. Chaque modification est envoyée automatiquement vers votre Gist GitHub.</div>
+      <div class="field">
+        <label>Identifiant du Gist</label>
+        <input type="text" id="syncGistIdDisplay" disabled>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" id="syncDisconnectBtn">Se déconnecter</button>
+        <button class="btn primary" id="syncTestBtn">Tester la connexion</button>
+      </div>
+    </div>
+    <div id="syncUnconfigured">
+      <div class="field">
+        <label>Identifiant du Gist</label>
+        <input type="text" id="syncGistId" placeholder="ex. 3a1f9c2e4b7d6a5c8f0e1d2b3a4c5d6e">
+      </div>
+      <div class="field">
+        <label>Token d'accès personnel (scope Gist uniquement)</label>
+        <input type="text" id="syncToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <div class="lookup-status" id="syncStatusMsg" style="display:none;"></div>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close="modalSync">Annuler</button>
+        <button class="btn primary" id="syncConnectBtn">Connecter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: display settings -->
+<div class="modal-backdrop hidden" id="modalDisplay">
+  <div class="modal">
+    <button class="close-x" data-close="modalDisplay">&times;</button>
+    <h3>Optimiser l'affichage</h3>
+    <div class="modal-sub">Choisissez la mise en page adaptée à votre terminal. "Automatique" détecte la taille de votre écran à chaque ouverture.</div>
+    <div id="displayChoices"></div>
+    <div class="lookup-status" id="displayCurrentNote" style="margin-top:2px;"></div>
+    <div class="modal-footer" style="margin-top:14px;">
+      <button class="btn primary" data-close="modalDisplay" style="flex:1;">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: backup export/import -->
+<div class="modal-backdrop hidden" id="modalBackup">
+  <div class="modal">
+    <button class="close-x" data-close="modalBackup">&times;</button>
+    <h3>Exporter / Importer</h3>
+    <div class="modal-sub">Sauvegardez votre stock et vos mélanges, ou restaurez-les sur un autre appareil.</div>
+
+    <div class="backup-block">
+      <h4>Exporter</h4>
+      <p>Génère un fichier .json à télécharger. Gardez-le précieusement, ou envoyez-le vous-même à un autre appareil (iCloud, mail, AirDrop...) pour l'importer là-bas.</p>
+      <div class="backup-actions">
+        <button class="btn" id="exportPaintsBtn">Stock seul</button>
+        <button class="btn" id="exportMixesBtn">Mélanges seuls</button>
+        <button class="btn primary" id="exportAllBtn">Tout exporter</button>
+      </div>
+    </div>
+
+    <div class="backup-block">
+      <h4>Importer</h4>
+      <p>Sélectionnez un fichier .json exporté depuis Arsenal Chromatique. Les données sont fusionnées avec celles déjà présentes (rien n'est écrasé sans confirmation) : les peintures déjà connues sont mises à jour, les nouvelles sont ajoutées, et les mélanges déjà connus ne sont pas dupliqués.</p>
+      <div class="file-drop" id="fileDrop">
+        <span id="fileDropLabel">Toucher pour choisir un fichier .json</span>
+        <input type="file" id="importFile" accept="application/json,.json">
+      </div>
+      <div class="import-summary" id="importSummary" style="display:none;"></div>
+      <div class="modal-footer" id="importConfirmRow" style="display:none;">
+        <button class="btn ghost" id="importCancelBtn">Annuler</button>
+        <button class="btn primary" id="importConfirmBtn">Confirmer l'import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================= CATALOGUE ============================= */
+// Teintes indicatives (hex approximatifs, à ajuster à l'oeil sur pot réel)
+const CATALOG = [
+  // --- CITADEL / BASE ---
+  {name:"Abaddon Black", brand:"Citadel", range:"Base", hex:"#231F20"},
+  {name:"Corax White", brand:"Citadel", range:"Base", hex:"#DFDFDF"},
+  {name:"Mephiston Red", brand:"Citadel", range:"Base", hex:"#9C2B2E"},
+  {name:"Macragge Blue", brand:"Citadel", range:"Base", hex:"#0A4C87"},
+  {name:"Caledor Sky", brand:"Citadel", range:"Base", hex:"#4487B0"},
+  {name:"Waaagh! Flesh", brand:"Citadel", range:"Base", hex:"#1F6C33"},
+  {name:"Zandri Dust", brand:"Citadel", range:"Base", hex:"#A98F5A"},
+  {name:"Rhinox Hide", brand:"Citadel", range:"Base", hex:"#4B3A2C"},
+  {name:"Leadbelcher", brand:"Citadel", range:"Base", hex:"#8F8F8F"},
+  {name:"Retributor Armour", brand:"Citadel", range:"Base", hex:"#9C7A32"},
+  {name:"Averland Sunset", brand:"Citadel", range:"Base", hex:"#E8A733"},
+  {name:"Khorne Red", brand:"Citadel", range:"Base", hex:"#5C0A0A"},
+  {name:"The Fang", brand:"Citadel", range:"Base", hex:"#2E4756"},
+  {name:"Kantor Blue", brand:"Citadel", range:"Base", hex:"#12253F"},
+  {name:"Incubi Darkness", brand:"Citadel", range:"Base", hex:"#1B3B36"},
+  {name:"Warplock Bronze", brand:"Citadel", range:"Base", hex:"#5A4324"},
+  {name:"Balthasar Gold", brand:"Citadel", range:"Base", hex:"#7A5B25"},
+  {name:"Screamer Pink", brand:"Citadel", range:"Base", hex:"#C13584"},
+  {name:"Naggaroth Night", brand:"Citadel", range:"Base", hex:"#3B2E52"},
+
+  {name:"Steel Legion Drab", brand:"Citadel", range:"Base", hex:"#6B5D3F"},
+  {name:"Death Guard Green", brand:"Citadel", range:"Base", hex:"#7C8768"},
+  {name:"Caliban Green", brand:"Citadel", range:"Base", hex:"#0F3B1E"},
+  {name:"Mournfang Brown", brand:"Citadel", range:"Base", hex:"#5A3A28"},
+  {name:"Wraithbone", brand:"Citadel", range:"Base", hex:"#C9BD98"},
+  {name:"Barak-Nar Burgundy", brand:"Citadel", range:"Base", hex:"#6B1F2A"},
+  {name:"Gal Vorbak Red", brand:"Citadel", range:"Base", hex:"#6E1414"},
+  {name:"Catachan Flesh", brand:"Citadel", range:"Base", hex:"#6E4A34"},
+  {name:"Night Lords Blue", brand:"Citadel", range:"Base", hex:"#1B2A3D"},
+  {name:"Bugman's Glow", brand:"Citadel", range:"Base", hex:"#8A5A44"},
+  {name:"Stegadon Scale Green", brand:"Citadel", range:"Base", hex:"#1F5C4A"},
+  {name:"Mechanicus Standard Grey", brand:"Citadel", range:"Base", hex:"#5C6469"},
+  {name:"Orruk Flesh", brand:"Citadel", range:"Base", hex:"#6E7C4A"},
+  {name:"Jokaero Orange", brand:"Citadel", range:"Base", hex:"#E8621E"},
+  {name:"Daemonette Hide", brand:"Citadel", range:"Base", hex:"#6B5A7A"},
+  {name:"Castellan Green", brand:"Citadel", range:"Base", hex:"#4A5C2E"},
+  {name:"Deathworld Forest", brand:"Citadel", range:"Base", hex:"#2E4A1E"},
+  {name:"XV-88", brand:"Citadel", range:"Base", hex:"#6B5230"},
+  {name:"Dryad Bark", brand:"Citadel", range:"Base", hex:"#3A2E24"},
+  {name:"Celestra Grey", brand:"Citadel", range:"Base", hex:"#C6C6C6"},
+  {name:"Ceramite White", brand:"Citadel", range:"Base", hex:"#F0F0F0"},
+  {name:"Ratskin Flesh", brand:"Citadel", range:"Base", hex:"#8A6248"},
+  {name:"Rakarth Flesh", brand:"Citadel", range:"Base", hex:"#8F8878"},
+  {name:"Screaming Bell", brand:"Citadel", range:"Base", hex:"#8A6A3E"},
+
+  // --- CITADEL / LAYER ---
+  {name:"Evil Sunz Scarlet", brand:"Citadel", range:"Layer", hex:"#C1121C"},
+  {name:"Wild Rider Red", brand:"Citadel", range:"Layer", hex:"#E0201B"},
+  {name:"Troll Slayer Orange", brand:"Citadel", range:"Layer", hex:"#E96A17"},
+  {name:"Fire Dragon Bright", brand:"Citadel", range:"Layer", hex:"#F2531D"},
+  {name:"Yriel Yellow", brand:"Citadel", range:"Layer", hex:"#F0C419"},
+  {name:"Flash Gitz Yellow", brand:"Citadel", range:"Layer", hex:"#F7D000"},
+  {name:"Sybarite Green", brand:"Citadel", range:"Layer", hex:"#6EA042"},
+  {name:"Warpstone Glow", brand:"Citadel", range:"Layer", hex:"#43A047"},
+  {name:"Moot Green", brand:"Citadel", range:"Layer", hex:"#94BE5A"},
+  {name:"Sotek Green", brand:"Citadel", range:"Layer", hex:"#1C6E5E"},
+  {name:"Temple Guard Blue", brand:"Citadel", range:"Layer", hex:"#3F9CA6"},
+  {name:"Teclis Blue", brand:"Citadel", range:"Layer", hex:"#4FA9DE"},
+  {name:"Alaitoc Blue", brand:"Citadel", range:"Layer", hex:"#3D6E9C"},
+  {name:"Ahriman Blue", brand:"Citadel", range:"Layer", hex:"#1F5C8B"},
+  {name:"Fenrisian Grey", brand:"Citadel", range:"Layer", hex:"#8393A0"},
+  {name:"Administratum Grey", brand:"Citadel", range:"Layer", hex:"#97999B"},
+  {name:"Dawnstone", brand:"Citadel", range:"Layer", hex:"#999999"},
+  {name:"Ulthuan Grey", brand:"Citadel", range:"Layer", hex:"#DADADA"},
+  {name:"Screaming Skull", brand:"Citadel", range:"Layer", hex:"#DED2A6"},
+  {name:"Ushabti Bone", brand:"Citadel", range:"Layer", hex:"#C9B587"},
+  {name:"Cadian Fleshtone", brand:"Citadel", range:"Layer", hex:"#D18E6B"},
+  {name:"Kislev Flesh", brand:"Citadel", range:"Layer", hex:"#E3A587"},
+  {name:"Bestigor Flesh", brand:"Citadel", range:"Layer", hex:"#7D4B3A"},
+  {name:"Genestealer Purple", brand:"Citadel", range:"Layer", hex:"#6B4A8C"},
+  {name:"Emperor's Children", brand:"Citadel", range:"Layer", hex:"#C9A0C9"},
+  {name:"Flayed One Flesh", brand:"Citadel", range:"Layer", hex:"#9C8A6E"},
+  {name:"Thunderhawk Blue", brand:"Citadel", range:"Layer", hex:"#2E4E6E"},
+  {name:"Kakophoni Purple", brand:"Citadel", range:"Layer", hex:"#8C4A9C"},
+  {name:"Word Bearers Red", brand:"Citadel", range:"Layer", hex:"#A3231E"},
+  {name:"Squig Orange", brand:"Citadel", range:"Layer", hex:"#E8641A"},
+  {name:"Tau Light Ochre", brand:"Citadel", range:"Layer", hex:"#C9A45C"},
+  {name:"Balor Brown", brand:"Citadel", range:"Layer", hex:"#6B4630"},
+  {name:"Baharroth Blue", brand:"Citadel", range:"Layer", hex:"#3E9AC9"},
+  {name:"Blue Horror", brand:"Citadel", range:"Layer", hex:"#3EC8D6"},
+  {name:"Altdorf Guard Blue", brand:"Citadel", range:"Layer", hex:"#1E5A9C"},
+  {name:"Dark Reaper", brand:"Citadel", range:"Layer", hex:"#3C4A4C"},
+  {name:"White Scar", brand:"Citadel", range:"Layer", hex:"#EDEDED"},
+  {name:"Loren Forest", brand:"Citadel", range:"Layer", hex:"#46613B"},
+  {name:"Wazdakka Red", brand:"Citadel", range:"Layer", hex:"#C3341E"},
+  {name:"Xereus Purple", brand:"Citadel", range:"Layer", hex:"#6B4A9C"},
+  {name:"Warpfiend Grey", brand:"Citadel", range:"Layer", hex:"#6E7080"},
+  {name:"Slaanesh Grey", brand:"Citadel", range:"Layer", hex:"#8E96A8"},
+  {name:"Hoeth Blue", brand:"Citadel", range:"Layer", hex:"#3E8ED0"},
+  {name:"Calgar Blue", brand:"Citadel", range:"Layer", hex:"#4472B0"},
+  {name:"Lothern Blue", brand:"Citadel", range:"Layer", hex:"#2E8FC9"},
+  {name:"Kabalite Green", brand:"Citadel", range:"Layer", hex:"#2E8C5C"},
+  {name:"Warboss Green", brand:"Citadel", range:"Layer", hex:"#4E7C3E"},
+  {name:"Skarsnik Green", brand:"Citadel", range:"Layer", hex:"#6B9C4A"},
+  {name:"Straken Green", brand:"Citadel", range:"Layer", hex:"#A8C46E"},
+  {name:"Nurgling Green", brand:"Citadel", range:"Layer", hex:"#D8DC9E"},
+  {name:"Elysian Green", brand:"Citadel", range:"Layer", hex:"#A8C468"},
+  {name:"Ogryn Camo", brand:"Citadel", range:"Layer", hex:"#C9C48A"},
+  {name:"Tallarn Sand", brand:"Citadel", range:"Layer", hex:"#D9B36E"},
+  {name:"Karak Stone", brand:"Citadel", range:"Layer", hex:"#B89868"},
+  {name:"Ungor Flesh", brand:"Citadel", range:"Layer", hex:"#C9A87E"},
+  {name:"Skrag Brown", brand:"Citadel", range:"Layer", hex:"#7A5230"},
+  {name:"Deathclaw Brown", brand:"Citadel", range:"Layer", hex:"#9C6248"},
+  {name:"Zamesi Desert", brand:"Citadel", range:"Layer", hex:"#D4A83C"},
+  {name:"Doombull Brown", brand:"Citadel", range:"Layer", hex:"#6E2A2E"},
+  {name:"Tuskgor Fur", brand:"Citadel", range:"Layer", hex:"#8A3E30"},
+  {name:"Gorthor Brown", brand:"Citadel", range:"Layer", hex:"#4A3230"},
+  {name:"Baneblade Brown", brand:"Citadel", range:"Layer", hex:"#6E5A4C"},
+  {name:"Eshin Grey", brand:"Citadel", range:"Layer", hex:"#4A4640"},
+  {name:"Skavenblight Dinge", brand:"Citadel", range:"Layer", hex:"#35403C"},
+  {name:"Stormvermin Fur", brand:"Citadel", range:"Layer", hex:"#4E5A5E"},
+  {name:"Pallid Wych Flesh", brand:"Citadel", range:"Layer", hex:"#B8C2C4"},
+  {name:"Iron Breaker", brand:"Citadel", range:"Layer", hex:"#8E96A0"},
+  {name:"Runefang Steel", brand:"Citadel", range:"Layer", hex:"#B8C0C4"},
+  {name:"Gehenna's Gold", brand:"Citadel", range:"Layer", hex:"#C99A3C"},
+  {name:"Auric Armour Gold", brand:"Citadel", range:"Layer", hex:"#D4B04A"},
+  {name:"Hashut Copper", brand:"Citadel", range:"Layer", hex:"#8A4A2E"},
+  {name:"Sycorax Bronze", brand:"Citadel", range:"Layer", hex:"#C99A6E"},
+  {name:"Brass Scorpion", brand:"Citadel", range:"Layer", hex:"#8A5A2E"},
+  {name:"Runelord Brass", brand:"Citadel", range:"Layer", hex:"#A87A3C"},
+  {name:"Russ Grey", brand:"Citadel", range:"Layer", hex:"#4A6C7A"},
+  {name:"Pink Horror", brand:"Citadel", range:"Layer", hex:"#C23A78"},
+
+  // --- CITADEL / SHADE ---
+  {name:"Nuln Oil", brand:"Citadel", range:"Shade", hex:"#151414"},
+  {name:"Agrax Earthshade", brand:"Citadel", range:"Shade", hex:"#3B2C1A"},
+  {name:"Reikland Fleshshade", brand:"Citadel", range:"Shade", hex:"#7A3A17"},
+  {name:"Seraphim Sepia", brand:"Citadel", range:"Shade", hex:"#6E4A1F"},
+  {name:"Druchii Violet", brand:"Citadel", range:"Shade", hex:"#2A1240"},
+  {name:"Carroburg Crimson", brand:"Citadel", range:"Shade", hex:"#4A0E13"},
+  {name:"Biel-Tan Green", brand:"Citadel", range:"Shade", hex:"#0C3B25"},
+  {name:"Coelia Greenshade", brand:"Citadel", range:"Shade", hex:"#063B3A"},
+  {name:"Fuegan Orange", brand:"Citadel", range:"Shade", hex:"#7A2A0E"},
+  {name:"Casandora Yellow", brand:"Citadel", range:"Shade", hex:"#D9922E"},
+  {name:"Drakenhof Nightshade", brand:"Citadel", range:"Shade", hex:"#1E3A6E"},
+  {name:"Athonian Camoshade", brand:"Citadel", range:"Shade", hex:"#3A3E1E"},
+
+  // --- CITADEL / CONTRAST ---
+  {name:"Black Templar", brand:"Citadel", range:"Contrast", hex:"#17181A"},
+  {name:"Blood Angels Red", brand:"Citadel", range:"Contrast", hex:"#8C1010"},
+  {name:"Space Wolves Grey", brand:"Citadel", range:"Contrast", hex:"#6E7C82"},
+  {name:"Ultramarines Blue", brand:"Citadel", range:"Contrast", hex:"#0F4C87"},
+  {name:"Iyanden Yellow", brand:"Citadel", range:"Contrast", hex:"#F0C21A"},
+  {name:"Gryph-hound Orange", brand:"Citadel", range:"Contrast", hex:"#D9631E"},
+  {name:"Talassar Blue", brand:"Citadel", range:"Contrast", hex:"#2262A0"},
+  {name:"Wyldwood", brand:"Citadel", range:"Contrast", hex:"#6B4A2C"},
+  {name:"Aggaros Dunes", brand:"Citadel", range:"Contrast", hex:"#B98A4E"},
+  {name:"Snakebite Leather", brand:"Citadel", range:"Contrast", hex:"#8A6A3E"},
+  {name:"Skeleton Horde", brand:"Citadel", range:"Contrast", hex:"#C9B98A"},
+  {name:"Guilliman Blue", brand:"Citadel", range:"Contrast", hex:"#1B3F6E"},
+  {name:"Luxion Purple", brand:"Citadel", range:"Contrast", hex:"#4A2E6E"},
+  {name:"Magos Purple", brand:"Citadel", range:"Contrast", hex:"#5C3A7A"},
+  {name:"Sigvald Burgundy", brand:"Citadel", range:"Contrast", hex:"#7A2540"},
+  {name:"Volupus Pink", brand:"Citadel", range:"Contrast", hex:"#C25A9C"},
+  {name:"Doomfire Magenta", brand:"Citadel", range:"Contrast", hex:"#A21B6E"},
+  {name:"Bad Moon Yellow", brand:"Citadel", range:"Contrast", hex:"#E8A93A"},
+  {name:"Apothecary White", brand:"Citadel", range:"Contrast", hex:"#D8D2C0"},
+
+  // --- CITADEL / SPRAY ---
+  {name:"Grey Seer", brand:"Citadel", range:"Spray", hex:"#B8B8B0"},
+
+  // --- CITADEL / TECHNICAL ---
+  {name:"Typhus Corrosion", brand:"Citadel", range:"Technical", hex:"#4A3F2A"},
+  {name:"Nurgle's Rot", brand:"Citadel", range:"Technical", hex:"#5B6B1F"},
+  {name:"Blood for the Blood God", brand:"Citadel", range:"Technical", hex:"#6E0B0B"},
+  {name:"Lahmian Medium", brand:"Citadel", range:"Technical", hex:"#D9D2C0", mixable:false},
+  {name:"Contrast Medium", brand:"Citadel", range:"Technical", hex:"#E8E4D8", mixable:false},
+  {name:"Imperial Primer", brand:"Citadel", range:"Technical", hex:"#1A1A1A", mixable:false},
+  {name:"Ardcoat", brand:"Citadel", range:"Technical", hex:"#D8E8F0", mixable:false},
+  {name:"Liquid Green Stuff", brand:"Citadel", range:"Technical", hex:"#2E6E4A", mixable:false},
+
+  // --- CITADEL / TEXTURE ---
+  {name:"Armageddon Dust", brand:"Citadel", range:"Texture", hex:"#7A6248"},
+  {name:"Astrogranite", brand:"Citadel", range:"Texture", hex:"#4A4A48"},
+  {name:"Mordant Earth", brand:"Citadel", range:"Texture", hex:"#5C4530"},
+  {name:"Valhallan Blizzard", brand:"Citadel", range:"Texture", hex:"#E8E8E0"},
+  {name:"Lustrian Undergrowth", brand:"Citadel", range:"Texture", hex:"#3E5A2E"},
+  {name:"Mourn Mountain Snow", brand:"Citadel", range:"Texture", hex:"#E8E8E4"},
+  {name:"Blackfire Earth", brand:"Citadel", range:"Texture", hex:"#4A3A2E"},
+  {name:"Stirland Mud", brand:"Citadel", range:"Texture", hex:"#4A3424"},
+
+  // --- CITADEL / DRY ---
+  {name:"Ryza Rust", brand:"Citadel", range:"Dry", hex:"#9C4A1E"},
+  {name:"Necron Compound", brand:"Citadel", range:"Dry", hex:"#5A6B6B"},
+  {name:"Stormhost Silver", brand:"Citadel", range:"Dry", hex:"#C7C9CB"},
+  {name:"Hexos Palesun", brand:"Citadel", range:"Dry", hex:"#D9C468"},
+  {name:"Kindleflame", brand:"Citadel", range:"Dry", hex:"#E8825A"},
+  {name:"Lucius Lilac", brand:"Citadel", range:"Dry", hex:"#A88EC4"},
+  {name:"Praxeti White", brand:"Citadel", range:"Dry", hex:"#E8E4D8"},
+  {name:"Etherium Blue", brand:"Citadel", range:"Dry", hex:"#8EA8D4"},
+  {name:"Skink Blue", brand:"Citadel", range:"Dry", hex:"#2E9EC4"},
+  {name:"Hellion Green", brand:"Citadel", range:"Dry", hex:"#6EC49E"},
+  {name:"Underhive Ash", brand:"Citadel", range:"Dry", hex:"#B8B49E"},
+  {name:"Eldar Flesh", brand:"Citadel", range:"Dry", hex:"#E4B26E"},
+  {name:"Tyrant Skull", brand:"Citadel", range:"Dry", hex:"#D4C88E"},
+  {name:"Terminatus Stone", brand:"Citadel", range:"Dry", hex:"#B8A888"},
+  {name:"Longbeard Grey", brand:"Citadel", range:"Dry", hex:"#C4BEC4"},
+  {name:"Golden Griffon", brand:"Citadel", range:"Dry", hex:"#C99A3C"},
+  {name:"Changeling Pink", brand:"Citadel", range:"Dry", hex:"#E88EB0"},
+
+  // --- CITADEL / GLAZE ---
+  {name:"Lamentors Yellow", brand:"Citadel", range:"Glaze", hex:"#E8B82E", mixable:false},
+  {name:"Bloodletter", brand:"Citadel", range:"Glaze", hex:"#C9281E", mixable:false},
+  {name:"Guilliman Blue Glaze", brand:"Citadel", range:"Glaze", hex:"#2E5A9C", mixable:false},
+  {name:"Waywatcher Green", brand:"Citadel", range:"Glaze", hex:"#3E8C3E", mixable:false},
+
+  // --- ARMY PAINTER ---
+  {name:"Turquoise Siren", brand:"Army Painter", range:"Warpaints", hex:"#1FA8A0"},
+
+  // --- VALLEJO / MODEL COLOR ---
+  {name:"Gun Metal", brand:"Vallejo", range:"Model Color", code:"70.863", hex:"#4A4A4E"},
+  {name:"Refractive Green", brand:"Vallejo", range:"Model Color", code:"70.890", hex:"#3A6E4A"},
+  {name:"Azure", brand:"Vallejo", range:"Model Color", code:"70.902", hex:"#2E7EBF"},
+  {name:"Yellow Ochre", brand:"Vallejo", range:"Model Color", code:"70.913", hex:"#C89A3C"},
+  {name:"Black", brand:"Vallejo", range:"Model Color", code:"70.950", hex:"#1A1A1A"},
+  {name:"White", brand:"Vallejo", range:"Model Color", code:"70.951", hex:"#F2F2F0"},
+  {name:"Lemon Yellow", brand:"Vallejo", range:"Model Color", code:"70.952", hex:"#F0DC28"},
+  {name:"Flat Flesh", brand:"Vallejo", range:"Model Color", code:"70.955", hex:"#D8A87A"},
+  {name:"Clear Orange", brand:"Vallejo", range:"Model Color", code:"70.956", hex:"#E8701E", mixable:false},
+  {name:"Flat Red", brand:"Vallejo", range:"Model Color", code:"70.957", hex:"#A31E22"},
+  {name:"Purple", brand:"Vallejo", range:"Model Color", code:"70.959", hex:"#5A2A6E"},
+  {name:"Flat Blue", brand:"Vallejo", range:"Model Color", code:"70.962", hex:"#1F4A8C"},
+  {name:"Flat Green", brand:"Vallejo", range:"Model Color", code:"70.968", hex:"#3C6B33"},
+  {name:"Buff", brand:"Vallejo", range:"Model Color", code:"70.976", hex:"#C9A96A"},
+  {name:"Flat Brown", brand:"Vallejo", range:"Model Color", code:"70.984", hex:"#6B4A2E"},
+  {name:"Gold", brand:"Vallejo", range:"Model Color", code:"70.996", hex:"#A9832E"},
+  {name:"Silver", brand:"Vallejo", range:"Model Color", code:"70.997", hex:"#B8B8B8"},
+
+  // --- VALLEJO / WASH FX ---
+  {name:"Light Rust", brand:"Vallejo", range:"Wash FX", code:"76.505", hex:"#8C4A22", mixable:false},
+  {name:"Black", brand:"Vallejo", range:"Wash FX", code:"76.518", hex:"#0F0F0F", mixable:false},
+
+  // --- VALLEJO / AUXILIAIRES ---
+  {name:"Acrylic Gloss Varnish", brand:"Vallejo", range:"Auxiliaires", code:"28.530", hex:"#DCEFFF", mixable:false},
+  {name:"Acrylic Matt Varnish", brand:"Vallejo", range:"Auxiliaires", code:"28.531", hex:"#E8E8E0", mixable:false},
+  {name:"Airbrush Thinner", brand:"Vallejo", range:"Auxiliaires", code:"71.161", hex:"#F0F0F0", mixable:false}
+];
+
+// Éléments à marquer comme "en stock" lors du premier chargement (import du stock indiqué par l'utilisateur)
+const IMPORT_LIST = [
+  {name:"Abaddon Black", brand:"Citadel", qty:2},
+  {name:"Balthasar Gold", brand:"Citadel", qty:2},
+  {name:"Corax White", brand:"Citadel"},
+  {name:"Macragge Blue", brand:"Citadel", qty:2},
+  {name:"Naggaroth Night", brand:"Citadel"},
+  {name:"Wraithbone", brand:"Citadel"},
+  {name:"Mephiston Red", brand:"Citadel"},
+  {name:"Barak-Nar Burgundy", brand:"Citadel"},
+  {name:"Screamer Pink", brand:"Citadel"},
+  {name:"Bugman's Glow", brand:"Citadel"},
+  {name:"Khorne Red", brand:"Citadel"},
+  {name:"Gal Vorbak Red", brand:"Citadel"},
+  {name:"Zandri Dust", brand:"Citadel"},
+  {name:"Leadbelcher", brand:"Citadel"},
+  {name:"Retributor Armour", brand:"Citadel"},
+  {name:"Averland Sunset", brand:"Citadel"},
+  {name:"Catachan Flesh", brand:"Citadel"},
+  {name:"Night Lords Blue", brand:"Citadel"},
+  {name:"Kantor Blue", brand:"Citadel"},
+  {name:"Luxion Purple", brand:"Citadel"},
+  {name:"Magos Purple", brand:"Citadel"},
+  {name:"Sigvald Burgundy", brand:"Citadel"},
+  {name:"Volupus Pink", brand:"Citadel"},
+  {name:"Doomfire Magenta", brand:"Citadel"},
+  {name:"Bad Moon Yellow", brand:"Citadel"},
+  {name:"Apothecary White", brand:"Citadel"},
+  {name:"Dark Reaper", brand:"Citadel"},
+  {name:"Dawnstone", brand:"Citadel"},
+  {name:"Genestealer Purple", brand:"Citadel"},
+  {name:"Emperor's Children", brand:"Citadel"},
+  {name:"Flayed One Flesh", brand:"Citadel"},
+  {name:"Administratum Grey", brand:"Citadel"},
+  {name:"Thunderhawk Blue", brand:"Citadel"},
+  {name:"Kislev Flesh", brand:"Citadel"},
+  {name:"Cadian Fleshtone", brand:"Citadel"},
+  {name:"Fenrisian Grey", brand:"Citadel"},
+  {name:"Ushabti Bone", brand:"Citadel"},
+  {name:"Kakophoni Purple", brand:"Citadel"},
+  {name:"Word Bearers Red", brand:"Citadel"},
+  {name:"Squig Orange", brand:"Citadel"},
+  {name:"Tau Light Ochre", brand:"Citadel"},
+  {name:"Rakarth Flesh", brand:"Citadel"},
+  {name:"Stegadon Scale Green", brand:"Citadel"},
+  {name:"Mechanicus Standard Grey", brand:"Citadel"},
+  {name:"Orruk Flesh", brand:"Citadel"},
+  {name:"Balor Brown", brand:"Citadel"},
+  {name:"Sotek Green", brand:"Citadel"},
+  {name:"Temple Guard Blue", brand:"Citadel"},
+  {name:"Baharroth Blue", brand:"Citadel"},
+  {name:"Blue Horror", brand:"Citadel"},
+  {name:"Altdorf Guard Blue", brand:"Citadel"},
+  {name:"Agrax Earthshade", brand:"Citadel"},
+  {name:"Fuegan Orange", brand:"Citadel"},
+  {name:"Carroburg Crimson", brand:"Citadel"},
+  {name:"Nuln Oil", brand:"Citadel"},
+  {name:"Reikland Fleshshade", brand:"Citadel"},
+  {name:"Grey Seer", brand:"Citadel"},
+  {name:"Armageddon Dust", brand:"Citadel"},
+  {name:"Astrogranite", brand:"Citadel"},
+  {name:"Lahmian Medium", brand:"Citadel"},
+  {name:"Contrast Medium", brand:"Citadel"},
+  {name:"Mordant Earth", brand:"Citadel"},
+  {name:"Valhallan Blizzard", brand:"Citadel"},
+  {name:"Blood for the Blood God", brand:"Citadel"},
+  {name:"Turquoise Siren", brand:"Army Painter"},
+  {code:"70.863"}, {code:"70.890"}, {code:"70.902"}, {code:"70.913"}, {code:"70.950"},
+  {code:"70.951"}, {code:"70.952"}, {code:"70.955"}, {code:"70.956"}, {code:"70.957"},
+  {code:"70.959"}, {code:"70.962"}, {code:"70.968"}, {code:"70.976"}, {code:"70.984"},
+  {code:"70.996"}, {code:"70.997"}, {code:"76.505"}, {code:"76.518"},
+  {code:"28.530"}, {code:"28.531"}, {code:"71.161"}
+];
+
+/* ============================= STATE ============================= */
+let paints = [];
+let mixes = [];
+let stockFilter = {search:'', brand:'all', owned:'all'};
+let openSuggestId = null;
+let pendingComment = null;
+let pendingNoteMixId = null;
+let addStatus = 'owned';
+
+const uid = () => 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+
+/* ============================= STOCKAGE LOCAL + SYNCHRO GITHUB GIST ============================= */
+const LS_KEYS = {
+  paints: 'ac_paints', mixes: 'ac_mixes', importFlag: 'ac_stockImportV3',
+  displayPref: 'ac_displayPref', github: 'ac_github_config'
+};
+function lsGet(key, fallback){
+  try{ const v = localStorage.getItem(key); return v!==null ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ console.error('Erreur localStorage', e); }
+}
+function getGithubConfig(){ return lsGet(LS_KEYS.github, null); }
+function hasGithubConfig(){ const c = getGithubConfig(); return !!(c && c.gistId && c.token); }
+function setGithubConfig(cfg){ lsSet(LS_KEYS.github, cfg); }
+function clearGithubConfig(){ try{ localStorage.removeItem(LS_KEYS.github); }catch(e){} }
+
+let syncStatus = 'local';
+function setSyncStatus(status){
+  syncStatus = status;
+  const dot = document.getElementById('syncDot');
+  if(!dot) return;
+  dot.className = 'sync-dot sync-' + status;
+  const labels = { local:"Stockage local uniquement", syncing:"Synchronisation en cours...", ok:"Synchronisé avec GitHub", error:"Erreur de synchronisation" };
+  dot.title = labels[status] || '';
+}
+
+async function githubFetchGist(){
+  const cfg = getGithubConfig();
+  const res = await fetch('https://api.github.com/gists/' + cfg.gistId, {
+    headers: { 'Authorization': 'token ' + cfg.token, 'Accept': 'application/vnd.github+json' }
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+async function loadFromCloud(){
+  if(!hasGithubConfig()) return null;
+  try{
+    const data = await githubFetchGist();
+    const pf = data.files && data.files['paints.json'];
+    const mf = data.files && data.files['mixes.json'];
+    return {
+      paints: (pf && pf.content) ? JSON.parse(pf.content) : null,
+      mixes: (mf && mf.content) ? JSON.parse(mf.content) : null
+    };
+  }catch(e){
+    console.error('Erreur de lecture du Gist', e);
+    return null;
+  }
+}
+let pushTimer = null;
+function schedulePush(){
+  if(!hasGithubConfig()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushToCloud, 900);
+}
+async function pushToCloud(){
+  if(!hasGithubConfig()) return;
+  const cfg = getGithubConfig();
+  setSyncStatus('syncing');
+  try{
+    const res = await fetch('https://api.github.com/gists/' + cfg.gistId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'token ' + cfg.token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: {
+        'paints.json': { content: JSON.stringify(paints) },
+        'mixes.json': { content: JSON.stringify(mixes) }
+      }})
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    setSyncStatus('ok');
+  }catch(e){
+    console.error('Erreur de synchronisation GitHub', e);
+    setSyncStatus('error');
+  }
+}
+async function testGithubConnection(gistId, token){
+  const res = await fetch('https://api.github.com/gists/' + gistId, {
+    headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github+json' }
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+/* ============================= STORAGE ============================= */
+const RENAME_MAP = [
+  {brand:"Citadel", oldName:"Squid Orange", newName:"Squig Orange"}
+];
+function applyRenames(){
+  RENAME_MAP.forEach(r=>{
+    const p = paints.find(x=>x.brand===r.brand && x.name.toLowerCase()===r.oldName.toLowerCase());
+    if(p) p.name = r.newName;
+  });
+}
+const RANGE_FIX_MAP = [
+  {brand:"Citadel", name:"White Scar", range:"Layer"},
+  {brand:"Citadel", name:"Loren Forest", range:"Layer"},
+  {brand:"Citadel", name:"Wazdakka Red", range:"Layer"},
+  {brand:"Citadel", name:"Celestra Grey", range:"Base"},
+  {brand:"Citadel", name:"Ceramite White", range:"Base"},
+  {brand:"Citadel", name:"Ratskin Flesh", range:"Base"},
+  {brand:"Citadel", name:"Rakarth Flesh", range:"Base"},
+  {brand:"Citadel", name:"Screaming Bell", range:"Base"},
+  {brand:"Citadel", name:"Astrogranite", range:"Texture"},
+  {brand:"Citadel", name:"Armageddon Dust", range:"Texture"},
+  {brand:"Citadel", name:"Mordant Earth", range:"Texture"},
+  {brand:"Citadel", name:"Valhallan Blizzard", range:"Texture"}
+];
+function applyRangeFixes(){
+  RANGE_FIX_MAP.forEach(r=>{
+    const p = paints.find(x=>x.brand===r.brand && x.name.toLowerCase()===r.name.toLowerCase());
+    if(p) p.range = r.range;
+  });
+}
+async function loadState(){
+  paints = lsGet(LS_KEYS.paints, []);
+  mixes = lsGet(LS_KEYS.mixes, []);
+
+  applyRenames();
+  applyRangeFixes();
+  mergeCatalog();
+
+  const alreadyImported = lsGet(LS_KEYS.importFlag, false);
+  if(!alreadyImported){
+    applyImport();
+    lsSet(LS_KEYS.importFlag, true);
+  }
+  savePaintsLocal();
+  saveMixesLocal();
+
+  if(hasGithubConfig()){
+    setSyncStatus('syncing');
+    const cloud = await loadFromCloud();
+    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); mergeCatalog(); }
+    if(cloud && Array.isArray(cloud.mixes)){ mixes = cloud.mixes; }
+    savePaintsLocal();
+    saveMixesLocal();
+    setSyncStatus(cloud ? 'ok' : 'error');
+  } else {
+    setSyncStatus('local');
+  }
+}
+function mergeCatalog(){
+  const keyOf = p => (p.brand+'|'+p.name.toLowerCase()+'|'+(p.code||'')).trim();
+  const existing = new Set(paints.map(keyOf));
+  CATALOG.forEach(c=>{
+    const k = keyOf(c);
+    if(!existing.has(k)){
+      paints.push({
+        id: uid(), name:c.name, brand:c.brand, range:c.range, hex:c.hex,
+        code:c.code||null, qty:1, owned:false, custom:false, toBuy:false,
+        mixable: c.mixable !== false
+      });
+      existing.add(k);
+    }
+  });
+}
+function applyImport(){
+  IMPORT_LIST.forEach(item=>{
+    let p = null;
+    if(item.code){
+      p = paints.find(x=>x.code===item.code);
+    } else {
+      p = paints.find(x=>x.brand===item.brand && x.name.toLowerCase()===item.name.toLowerCase());
+    }
+    if(p){
+      p.owned = true;
+      p.toBuy = false;
+      if(item.qty) p.qty = item.qty;
+    }
+  });
+}
+function savePaintsLocal(){ lsSet(LS_KEYS.paints, paints); }
+function saveMixesLocal(){ lsSet(LS_KEYS.mixes, mixes); }
+async function savePaints(){
+  savePaintsLocal();
+  schedulePush();
+}
+async function saveMixes(){
+  saveMixesLocal();
+  schedulePush();
+}
+
+/* ============================= COLOR MATH ============================= */
+function hexToRgb(hex){
+  const h = hex.replace('#','');
+  const n = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+  const num = parseInt(n,16);
+  return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
+}
+function rgbToHex({r,g,b}){
+  return '#' + [r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function mixRgb(rgbA, rgbB, pctA){
+  const a = pctA/100, b = 1-a;
+  return { r: rgbA.r*a + rgbB.r*b, g: rgbA.g*a + rgbB.g*b, b: rgbA.b*a + rgbB.b*b };
+}
+function mixRgbTriple(c1,c2,c3,p1,p2,p3){
+  return { r: c1.r*p1 + c2.r*p2 + c3.r*p3, g: c1.g*p1 + c2.g*p2 + c3.g*p3, b: c1.b*p1 + c2.b*p2 + c3.b*p3 };
+}
+function colorDistance(hexA, hexB){
+  const c1 = hexToRgb(hexA), c2 = hexToRgb(hexB);
+  const rmean = (c1.r + c2.r) / 2;
+  const dr = c1.r - c2.r, dg = c1.g - c2.g, db = c1.b - c2.b;
+  return Math.sqrt((2 + rmean/256)*dr*dr + 4*dg*dg + (2 + (255-rmean)/256)*db*db);
+}
+
+const TRIPLE_RATIOS = [[0.34,0.33,0.33],[0.5,0.25,0.25],[0.25,0.5,0.25],[0.25,0.25,0.5],[0.6,0.2,0.2],[0.2,0.6,0.2],[0.2,0.2,0.6]];
+
+function findBestMix(targetHex, owned){
+  let best = {distance: Infinity, components: null};
+  owned.forEach(p=>{
+    const d = colorDistance(p.hex, targetHex);
+    if(d < best.distance) best = {distance:d, components:[{paint:p, pct:100}]};
+  });
+  for(let i=0;i<owned.length;i++){
+    for(let j=i+1;j<owned.length;j++){
+      const c1 = hexToRgb(owned[i].hex), c2 = hexToRgb(owned[j].hex);
+      for(let ratio=10; ratio<=90; ratio+=10){
+        const mixed = rgbToHex(mixRgb(c1,c2,ratio));
+        const d = colorDistance(mixed, targetHex);
+        if(d < best.distance){
+          best = {distance:d, components:[{paint:owned[i], pct:ratio},{paint:owned[j], pct:100-ratio}]};
+        }
+      }
+    }
+  }
+  if(owned.length <= 45){
+    for(let i=0;i<owned.length;i++){
+      const c1 = hexToRgb(owned[i].hex);
+      for(let j=i+1;j<owned.length;j++){
+        const c2 = hexToRgb(owned[j].hex);
+        for(let k=j+1;k<owned.length;k++){
+          const c3 = hexToRgb(owned[k].hex);
+          for(const ratioSet of TRIPLE_RATIOS){
+            const p1=ratioSet[0], p2=ratioSet[1], p3=ratioSet[2];
+            const mixed = rgbToHex(mixRgbTriple(c1,c2,c3,p1,p2,p3));
+            const d = colorDistance(mixed, targetHex);
+            if(d < best.distance){
+              best = {distance:d, components:[
+                {paint:owned[i], pct:Math.round(p1*100)},
+                {paint:owned[j], pct:Math.round(p2*100)},
+                {paint:owned[k], pct:Math.round(p3*100)}
+              ]};
+            }
+          }
+        }
+      }
+    }
+  }
+  return best;
+}
+function mixedHexFromComponents(components){
+  if(components.length === 1) return components[0].paint.hex;
+  if(components.length === 2){
+    return rgbToHex(mixRgb(hexToRgb(components[0].paint.hex), hexToRgb(components[1].paint.hex), components[0].pct));
+  }
+  const c1=hexToRgb(components[0].paint.hex), c2=hexToRgb(components[1].paint.hex), c3=hexToRgb(components[2].paint.hex);
+  return rgbToHex(mixRgbTriple(c1,c2,c3, components[0].pct/100, components[1].pct/100, components[2].pct/100));
+}
+function matchQuality(distance){
+  if(distance < 18) return {label:'Très proche', cls:'good'};
+  if(distance < 45) return {label:'Approximatif', cls:'mid'};
+  return {label:'Éloigné', cls:'poor'};
+}
+
+/* ============================= RENDER: STOCK ============================= */
+function renderBrandChips(){
+  const brands = ['all', ...new Set(paints.map(p=>p.brand))];
+  const el = document.getElementById('brandChips');
+  el.innerHTML = brands.map(b=>{
+    const label = b==='all' ? 'Toutes marques' : b;
+    return `<div class="chip ${stockFilter.brand===b?'active':''}" data-brand="${b}">${label}</div>`;
+  }).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.onclick = ()=>{ stockFilter.brand = c.dataset.brand; renderStock(); };
+  });
+}
+function cartIcon(){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>`;
+}
+function renderStock(){
+  renderBrandChips();
+  document.querySelectorAll('#ownedChips .chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.owned === stockFilter.owned);
+  });
+  const q = stockFilter.search.trim().toLowerCase();
+  let list = paints.filter(p=>{
+    if(stockFilter.brand!=='all' && p.brand!==stockFilter.brand) return false;
+    if(stockFilter.owned==='yes' && !p.owned) return false;
+    if(stockFilter.owned==='no' && p.owned) return false;
+    if(q && !(p.name.toLowerCase().includes(q) || (p.code||'').includes(q))) return false;
+    return true;
+  }).sort((a,b)=> (b.owned - a.owned) || a.name.localeCompare(b.name));
+
+  const listEl = document.getElementById('stockList');
+  if(list.length===0){
+    listEl.innerHTML = `<div class="empty-state"><div class="glyph">◌</div><p>Aucune peinture ne correspond à ces filtres.</p></div>`;
+  } else {
+    listEl.innerHTML = list.map(p => {
+      const metaBits = [p.brand, p.range||'—'];
+      if(p.code) metaBits.push(p.code);
+      return `
+      <div class="paint-row">
+        <div class="pot-lid ${p.owned?'':'unowned'}" style="background:${p.hex}"></div>
+        <div class="paint-info">
+          <div class="paint-name">${escapeHtml(p.name)}${(p.owned && p.qty>1) ? `<span class="qty-badge">×${p.qty}</span>` : ''}</div>
+          <div class="paint-meta">${metaBits.map(escapeHtml).join(' · ')} · <span class="hex">${p.hex}</span></div>
+        </div>
+        <div class="row-actions">
+          ${!p.owned ? `<div class="cart-toggle ${p.toBuy?'on':''}" data-cart="${p.id}" title="Ajouter à la liste de courses">${cartIcon()}</div>` : ''}
+          <div class="owned-toggle ${p.owned?'on':''}" data-id="${p.id}"><div class="knob"></div></div>
+          ${p.custom ? `<button class="del-btn" data-del="${p.id}">&times;</button>` : ''}
+        </div>
+      </div>
+    `;
+    }).join('');
+    listEl.querySelectorAll('.owned-toggle').forEach(t=>{
+      t.onclick = async ()=>{
+        const paint = paints.find(x=>x.id===t.dataset.id);
+        paint.owned = !paint.owned;
+        if(paint.owned) paint.toBuy = false;
+        await savePaints();
+        renderStock(); renderSuggestions(); renderShoppingList();
+      };
+    });
+    listEl.querySelectorAll('[data-cart]').forEach(t=>{
+      t.onclick = async ()=>{
+        const paint = paints.find(x=>x.id===t.dataset.cart);
+        paint.toBuy = !paint.toBuy;
+        await savePaints();
+        renderStock(); renderShoppingList();
+      };
+    });
+    listEl.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.onclick = async (e)=>{
+        e.stopPropagation();
+        if(confirm('Retirer définitivement cette peinture de votre catalogue ?')){
+          paints = paints.filter(x=>x.id!==btn.dataset.del);
+          await savePaints();
+          renderStock(); renderSuggestions(); renderShoppingList();
+        }
+      };
+    });
+  }
+  updateStockCount();
+}
+function updateStockCount(){
+  document.getElementById('stockCountNum').textContent = paints.filter(p=>p.owned).length;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================= RENDER: SUGGESTIONS ============================= */
+function renderSuggestions(){
+  const q = (document.getElementById('suggestSearch').value||'').trim().toLowerCase();
+  const missing = paints.filter(p=> p.brand==='Citadel' && p.mixable!==false && !p.owned && (!q || p.name.toLowerCase().includes(q)))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  const el = document.getElementById('suggestList');
+  const owned = paints.filter(p=>p.owned && p.mixable!==false);
+
+  if(missing.length===0){
+    const msg = owned.length
+      ? "Toutes les teintes Citadel du catalogue sont dans votre stock !"
+      : "Ajoutez d'abord des peintures à votre stock, puis revenez ici pour obtenir des suggestions de mélange.";
+    el.innerHTML = `<div class="empty-state"><div class="glyph">✓</div><p>${msg}</p></div>`;
+    return;
+  }
+  el.innerHTML = missing.map(p=>{
+    const isOpen = openSuggestId === p.id;
+    return `
+    <div class="suggest-card" data-card="${p.id}">
+      <div class="suggest-head">
+        <div class="pot-lid" style="background:${p.hex}"></div>
+        <div class="suggest-title">${escapeHtml(p.name)}<span class="meta">${escapeHtml(p.range)} · <span class="mono">${p.hex}</span></span></div>
+        <button class="btn small ${isOpen?'':'primary'}" data-toggle="${p.id}">${isOpen?'Masquer':'Voir mélange'}</button>
+      </div>
+      <div id="detail-${p.id}"></div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.toggle;
+      openSuggestId = (openSuggestId===id) ? null : id;
+      renderSuggestions();
+      if(openSuggestId) renderSuggestDetail(id);
+    };
+  });
+  if(openSuggestId) renderSuggestDetail(openSuggestId);
+}
+function renderSuggestDetail(paintId){
+  const target = paints.find(p=>p.id===paintId);
+  if(!target) return;
+  const owned = paints.filter(p=>p.owned && p.mixable!==false);
+  const container = document.getElementById('detail-'+paintId);
+  if(!container) return;
+  if(owned.length===0){
+    container.innerHTML = `<div class="mix-detail"><p class="recipe-note">Ajoutez d'abord des peintures possédées pour générer une suggestion.</p></div>`;
+    return;
+  }
+  const best = findBestMix(target.hex, owned);
+  const mixedHex = mixedHexFromComponents(best.components);
+  const quality = matchQuality(best.distance);
+  const isPoor = quality.cls === 'poor';
+
+  container.innerHTML = `
+    <div class="mix-detail">
+      <div class="mix-compare">
+        <div class="compare-block"><div class="swatch" style="background:${target.hex}"></div><div class="cap">Cible</div></div>
+        <div class="arrow">→</div>
+        <div class="compare-block"><div class="swatch" style="background:${mixedHex}"></div><div class="cap">Mélange</div></div>
+        <div class="match-badge ${quality.cls}">${quality.label}</div>
+      </div>
+      <ul class="recipe-list">
+        ${best.components.map(c=>`<li><span class="dot" style="background:${c.paint.hex}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
+      </ul>
+      <div class="recipe-note">Estimation calculée à partir de vos peintures en stock (moyenne pondérée des teintes). À affiner à l'oeil sur palette humide — le rendu réel dépend du mélange physique des pigments.</div>
+      <button class="btn primary small" data-try="${target.id}">Enregistrer un essai de ce mélange</button>
+      <div id="reco-${target.id}"></div>
+    </div>
+  `;
+  container.querySelector('[data-try]').onclick = ()=>{
+    pendingComment = { target, components: best.components, mixedHex };
+    document.getElementById('commentSub').textContent = `${target.name} — ${best.components.map(c=>c.pct+'% '+c.paint.name).join(' + ')}`;
+    document.getElementById('cText').value = '';
+    openModal('modalComment');
+  };
+  if(isPoor){
+    renderBuyReco(target);
+  }
+}
+function renderBuyReco(target){
+  const holder = document.getElementById('reco-'+target.id);
+  if(!holder) return;
+  const draw = ()=>{
+    const already = target.toBuy;
+    holder.innerHTML = `
+      <div class="buy-reco ${already?'added':''}">
+        <div class="buy-text">${already
+          ? `<b>Déjà dans la liste de courses.</b> Ce mélange s'éloigne trop de la teinte originale pour être approché fidèlement avec votre stock actuel.`
+          : `<b>Mélange peu fiable.</b> Cette teinte s'éloigne trop de ce que votre stock permet d'approcher — mieux vaut acheter directement le pot original.`}
+        </div>
+        <button class="btn ${already?'small':'warn small'}" data-buyreco="${target.id}">${already ? 'Retirer de la liste de courses' : 'Ajouter à la liste de courses'}</button>
+      </div>`;
+    holder.querySelector('[data-buyreco]').onclick = async ()=>{
+      target.toBuy = !target.toBuy;
+      await savePaints();
+      draw();
+      renderShoppingList();
+    };
+  };
+  draw();
+}
+
+/* ============================= RENDER: MIXES ============================= */
+function renderMixes(){
+  const el = document.getElementById('mixesList');
+  const sorted = [...mixes].sort((a,b)=> b.createdAt - a.createdAt);
+  if(sorted.length===0){
+    el.innerHTML = `<div class="empty-state"><div class="glyph">⚗</div><p>Aucun mélange enregistré pour l'instant. Depuis l'onglet "Mélanges", enregistrez vos essais pour les retrouver ici.</p></div>`;
+    return;
+  }
+  el.innerHTML = sorted.map(m=>{
+    const dateStr = new Date(m.createdAt).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'});
+    return `
+    <div class="mix-card">
+      <div class="mix-card-head">
+        <div class="swatch" style="background:${m.mixedHex}"></div>
+        <div class="mix-card-title">${escapeHtml(m.targetName)}<span class="date">${dateStr}</span></div>
+        <button class="del-btn" data-delmix="${m.id}">&times;</button>
+      </div>
+      <div class="mix-recipe-line">${m.components.map(c=>c.pct+'% '+c.name).join(' + ')}</div>
+      ${m.comment ? `<div class="mix-comment">${escapeHtml(m.comment)}</div>` : ''}
+      ${m.notes && m.notes.length ? `<div class="mix-comment-log">${m.notes.map(n=>`<div class="entry"><span class="d">${new Date(n.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span>${escapeHtml(n.text)}</div>`).join('')}</div>` : ''}
+      <div class="mix-actions">
+        <button class="btn small" data-addnote="${m.id}">+ Ajouter une note</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-delmix]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      if(confirm('Supprimer ce mélange enregistré ?')){
+        mixes = mixes.filter(m=>m.id!==btn.dataset.delmix);
+        await saveMixes();
+        renderMixes();
+      }
+    };
+  });
+  el.querySelectorAll('[data-addnote]').forEach(btn=>{
+    btn.onclick = ()=>{
+      pendingNoteMixId = btn.dataset.addnote;
+      document.getElementById('nText').value = '';
+      openModal('modalNote');
+    };
+  });
+}
+
+/* ============================= RENDER: SHOPPING LIST ============================= */
+function renderShoppingList(){
+  const list = paints.filter(p=>p.toBuy && !p.owned).sort((a,b)=> a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
+  const el = document.getElementById('shopList');
+  const badge = document.getElementById('shopBadge');
+  if(list.length>0){
+    badge.style.display='flex';
+    badge.textContent = list.length;
+  } else {
+    badge.style.display='none';
+  }
+  if(list.length===0){
+    el.innerHTML = `<div class="empty-state"><div class="glyph">🛒</div><p>Votre liste de courses est vide. Ajoutez des peintures depuis le Stock (icône panier) ou depuis les recommandations d'achat des mélanges.</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(p=>{
+    const metaBits = [p.brand, p.range||'—'];
+    if(p.code) metaBits.push(p.code);
+    return `
+    <div class="shop-row">
+      <div class="pot-lid" style="background:${p.hex}"></div>
+      <div class="paint-info">
+        <div class="paint-name">${escapeHtml(p.name)}</div>
+        <div class="paint-meta">${metaBits.map(escapeHtml).join(' · ')} · <span class="hex">${p.hex}</span></div>
+      </div>
+      <button class="btn small" data-uncart="${p.id}" title="Retirer de la liste">Retirer</button>
+      <div class="check-circle" data-bought="${p.id}" title="Marquer comme achetée">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-uncart]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const p = paints.find(x=>x.id===btn.dataset.uncart);
+      p.toBuy = false;
+      await savePaints();
+      renderShoppingList(); renderStock();
+    };
+  });
+  el.querySelectorAll('[data-bought]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const p = paints.find(x=>x.id===btn.dataset.bought);
+      p.owned = true;
+      p.toBuy = false;
+      await savePaints();
+      renderShoppingList(); renderStock(); renderSuggestions();
+    };
+  });
+}
+
+/* ============================= MODALS ============================= */
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('[data-close]').forEach(btn=>{
+  btn.onclick = ()=> closeModal(btn.dataset.close);
+});
+document.querySelectorAll('.modal-backdrop').forEach(bd=>{
+  bd.addEventListener('click', (e)=>{ if(e.target===bd) bd.classList.add('hidden'); });
+});
+
+/* Add paint modal */
+document.getElementById('fColorPicker').addEventListener('input', (e)=>{
+  document.getElementById('fColorHex').value = e.target.value.toUpperCase();
+});
+document.getElementById('fColorHex').addEventListener('input', (e)=>{
+  let v = e.target.value.trim();
+  if(/^#?[0-9a-fA-F]{6}$/.test(v)){
+    if(!v.startsWith('#')) v = '#'+v;
+    document.getElementById('fColorPicker').value = v;
+  }
+});
+document.querySelectorAll('#fStatus button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#fStatus button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    addStatus = b.dataset.status;
+  };
+});
+document.getElementById('fabAdd').onclick = ()=>{
+  document.getElementById('fName').value='';
+  document.getElementById('fBrand').value='Citadel';
+  document.getElementById('fRange').value='';
+  document.getElementById('fCode').value='';
+  document.getElementById('fColorPicker').value='#8c2f2f';
+  document.getElementById('fColorHex').value='#8C2F2F';
+  addStatus = 'owned';
+  document.querySelectorAll('#fStatus button').forEach(x=>x.classList.toggle('active', x.dataset.status==='owned'));
+  const statusEl = document.getElementById('fLookupStatus');
+  statusEl.style.display = 'none';
+  statusEl.className = 'lookup-status';
+  openModal('modalAdd');
+};
+
+/* Recherche automatique de la gamme et de la teinte via l'API Claude (web search) */
+async function lookupPaintOnline(name, brand){
+  const prompt = `Peinture pour figurines : "${name}" (marque : ${brand}).
+Cherche des informations fiables sur le web si nécessaire pour identifier précisément ce produit.
+Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises markdown, au format exact :
+{"exists": true ou false, "range": "nom de la gamme officielle (ex: Base, Layer, Contrast, Shade, Technical, Dry, Spray, Model Color, Warpaints, etc.)", "hex": "#RRGGBB (couleur approximative du pot, ta meilleure estimation)", "code": "référence produit si elle existe, sinon null"}
+Si tu ne trouves pas cette peinture avec certitude, mets "exists": false mais fournis quand même ta meilleure estimation de gamme et de couleur d'après le nom.`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }],
+      tools: [{ type: "web_search_20250305", name: "web_search" }]
+    })
+  });
+  if(!response.ok) throw new Error('Réponse API invalide');
+  const data = await response.json();
+  const textParts = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  const cleaned = textParts.replace(/```json|```/g,'').trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if(!match) throw new Error('Pas de JSON dans la réponse');
+  return JSON.parse(match[0]);
+}
+document.getElementById('fLookupBtn').onclick = async ()=>{
+  const name = document.getElementById('fName').value.trim();
+  const brand = document.getElementById('fBrand').value;
+  const statusEl = document.getElementById('fLookupStatus');
+  if(!name){
+    statusEl.style.display='block';
+    statusEl.className = 'lookup-status warn';
+    statusEl.textContent = "Indiquez d'abord un nom de peinture avant de lancer la recherche.";
+    return;
+  }
+  const btn = document.getElementById('fLookupBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('spinning');
+  btn.textContent = 'Recherche en cours...';
+  statusEl.style.display = 'block';
+  statusEl.className = 'lookup-status';
+  statusEl.textContent = 'Interrogation de sources en ligne...';
+  try{
+    const result = await lookupPaintOnline(name, brand);
+    if(result.range) document.getElementById('fRange').value = result.range;
+    if(result.hex && /^#?[0-9a-fA-F]{6}$/.test(result.hex)){
+      let hex = result.hex.startsWith('#') ? result.hex : '#'+result.hex;
+      document.getElementById('fColorHex').value = hex.toUpperCase();
+      document.getElementById('fColorPicker').value = hex;
+    }
+    if(result.code) document.getElementById('fCode').value = result.code;
+    if(result.exists === false){
+      statusEl.className = 'lookup-status warn';
+      statusEl.textContent = "Peinture non identifiée avec certitude — gamme et teinte pré-remplies à titre indicatif, vérifiez avant d'ajouter.";
+    } else {
+      statusEl.className = 'lookup-status ok';
+      statusEl.textContent = 'Gamme et teinte trouvées et pré-remplies. Vérifiez puis validez.';
+    }
+  }catch(e){
+    statusEl.className = 'lookup-status err';
+    statusEl.textContent = "Recherche impossible pour le moment. Renseignez les champs manuellement.";
+  }
+  btn.disabled = false;
+  btn.classList.remove('spinning');
+  btn.textContent = originalLabel;
+};
+
+document.getElementById('fSaveBtn').onclick = async ()=>{
+  const name = document.getElementById('fName').value.trim();
+  if(!name){ alert("Merci d'indiquer un nom de peinture."); return; }
+  const brand = document.getElementById('fBrand').value;
+  const range = document.getElementById('fRange').value.trim();
+  const code = document.getElementById('fCode').value.trim();
+  let hex = document.getElementById('fColorHex').value.trim();
+  if(!hex.startsWith('#')) hex = '#'+hex;
+  if(!/^#[0-9a-fA-F]{6}$/.test(hex)) hex = document.getElementById('fColorPicker').value;
+  paints.push({
+    id: uid(), name, brand, range, hex: hex.toUpperCase(), code: code || null, qty:1,
+    owned: addStatus==='owned', toBuy: addStatus==='buy', custom:true, mixable:true
+  });
+  await savePaints();
+  closeModal('modalAdd');
+  renderStock(); renderSuggestions(); renderShoppingList();
+};
+
+/* Comment (save mix) modal */
+document.getElementById('cSaveBtn').onclick = async ()=>{
+  if(!pendingComment) return;
+  const comment = document.getElementById('cText').value.trim();
+  const mix = {
+    id: uid(),
+    targetPaintId: pendingComment.target.id,
+    targetName: pendingComment.target.name,
+    mixedHex: pendingComment.mixedHex,
+    components: pendingComment.components.map(c=>({name:c.paint.name, brand:c.paint.brand, hex:c.paint.hex, pct:c.pct})),
+    comment,
+    notes: [],
+    createdAt: Date.now()
+  };
+  mixes.push(mix);
+  await saveMixes();
+  pendingComment = null;
+  closeModal('modalComment');
+  renderMixes();
+  document.querySelector('[data-view="mixes"]').click();
+};
+
+/* Add note modal */
+document.getElementById('nSaveBtn').onclick = async ()=>{
+  const text = document.getElementById('nText').value.trim();
+  if(!text || !pendingNoteMixId) { closeModal('modalNote'); return; }
+  const mix = mixes.find(m=>m.id===pendingNoteMixId);
+  if(mix){
+    mix.notes = mix.notes || [];
+    mix.notes.push({ text, date: Date.now() });
+    await saveMixes();
+  }
+  pendingNoteMixId = null;
+  closeModal('modalNote');
+  renderMixes();
+};
+
+/* ============================= EXPORT / IMPORT ============================= */
+function todayStamp(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function downloadJSON(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+document.getElementById('btnBackup').onclick = ()=>{
+  resetImportUI();
+  openModal('modalBackup');
+};
+document.getElementById('exportPaintsBtn').onclick = ()=>{
+  downloadJSON({ type:'arsenal-chromatique-stock', version:1, exportedAt:Date.now(), paints }, `arsenal-stock-${todayStamp()}.json`);
+};
+document.getElementById('exportMixesBtn').onclick = ()=>{
+  downloadJSON({ type:'arsenal-chromatique-mixes', version:1, exportedAt:Date.now(), mixes }, `arsenal-melanges-${todayStamp()}.json`);
+};
+document.getElementById('exportAllBtn').onclick = ()=>{
+  downloadJSON({ type:'arsenal-chromatique-full', version:1, exportedAt:Date.now(), paints, mixes }, `arsenal-sauvegarde-${todayStamp()}.json`);
+};
+
+let pendingImport = null; // { paints:[...], mixes:[...] }
+
+function resetImportUI(){
+  pendingImport = null;
+  document.getElementById('importFile').value = '';
+  document.getElementById('fileDropLabel').textContent = 'Toucher pour choisir un fichier .json';
+  document.getElementById('importSummary').style.display = 'none';
+  document.getElementById('importConfirmRow').style.display = 'none';
+}
+
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  document.getElementById('fileDropLabel').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    let data;
+    try{ data = JSON.parse(ev.target.result); }
+    catch(err){
+      showImportSummary(`Ce fichier n'est pas un JSON valide. Vérifiez qu'il provient bien d'un export Arsenal Chromatique.`, false);
+      return;
+    }
+    const importedPaints = Array.isArray(data.paints) ? data.paints : [];
+    const importedMixes = Array.isArray(data.mixes) ? data.mixes : [];
+    if(importedPaints.length===0 && importedMixes.length===0){
+      showImportSummary(`Aucune peinture ni mélange reconnu dans ce fichier.`, false);
+      return;
+    }
+    pendingImport = { paints: importedPaints, mixes: importedMixes };
+    const bits = [];
+    if(importedPaints.length) bits.push(`<b>${importedPaints.length}</b> peinture(s)`);
+    if(importedMixes.length) bits.push(`<b>${importedMixes.length}</b> mélange(s)`);
+    showImportSummary(`Fichier reconnu : ${bits.join(' et ')} seront fusionnés avec vos données actuelles.`, true);
+  };
+  reader.onerror = ()=> showImportSummary(`Impossible de lire ce fichier.`, false);
+  reader.readAsText(file);
+});
+function showImportSummary(html, canConfirm){
+  const el = document.getElementById('importSummary');
+  el.style.display = 'block';
+  el.innerHTML = html;
+  document.getElementById('importConfirmRow').style.display = canConfirm ? 'flex' : 'none';
+}
+document.getElementById('importCancelBtn').onclick = ()=> resetImportUI();
+
+document.getElementById('importConfirmBtn').onclick = async ()=>{
+  if(!pendingImport) return;
+  let addedPaints = 0, updatedPaints = 0, addedMixes = 0, skippedMixes = 0;
+
+  pendingImport.paints.forEach(ip=>{
+    if(!ip || !ip.name || !ip.brand || !ip.hex) return;
+    let existing = ip.id ? paints.find(p=>p.id===ip.id) : null;
+    if(!existing){
+      existing = paints.find(p=> p.brand===ip.brand && p.name.toLowerCase()===ip.name.toLowerCase() && (p.code||null)===(ip.code||null));
+    }
+    if(existing){
+      existing.owned = ip.owned !== undefined ? !!ip.owned : existing.owned;
+      existing.toBuy = ip.toBuy !== undefined ? !!ip.toBuy : existing.toBuy;
+      if(ip.qty) existing.qty = ip.qty;
+      updatedPaints++;
+    } else {
+      paints.push({
+        id: uid(), name: ip.name, brand: ip.brand, range: ip.range || '', hex: ip.hex,
+        code: ip.code || null, qty: ip.qty || 1, owned: !!ip.owned, toBuy: !!ip.toBuy,
+        custom: true, mixable: ip.mixable !== false
+      });
+      addedPaints++;
+    }
+  });
+
+  pendingImport.mixes.forEach(im=>{
+    if(!im || !im.targetName || !Array.isArray(im.components)) return;
+    const exists = mixes.some(m=> (im.id && m.id===im.id));
+    if(exists){ skippedMixes++; return; }
+    mixes.push({
+      id: uid(),
+      targetPaintId: im.targetPaintId || null,
+      targetName: im.targetName,
+      mixedHex: im.mixedHex || '#888888',
+      components: im.components,
+      comment: im.comment || '',
+      notes: Array.isArray(im.notes) ? im.notes : [],
+      createdAt: im.createdAt || Date.now()
+    });
+    addedMixes++;
+  });
+
+  await savePaints();
+  await saveMixes();
+
+  showImportSummary(
+    `Import terminé — <b>${addedPaints}</b> peinture(s) ajoutée(s), <b>${updatedPaints}</b> mise(s) à jour, <b>${addedMixes}</b> mélange(s) ajouté(s)${skippedMixes ? `, ${skippedMixes} déjà présent(s) ignoré(s)` : ''}.`,
+    false
+  );
+  document.getElementById('importFile').value = '';
+  pendingImport = null;
+
+  renderStock(); renderSuggestions(); renderMixes(); renderShoppingList();
+};
+
+/* ============================= NAV / FILTERS ============================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    document.getElementById('fabAdd').style.display = (btn.dataset.view==='stock') ? 'flex' : 'none';
+  };
+});
+document.getElementById('stockSearch').addEventListener('input', (e)=>{
+  stockFilter.search = e.target.value; renderStock();
+});
+document.getElementById('suggestSearch').addEventListener('input', renderSuggestions);
+document.querySelectorAll('#ownedChips .chip').forEach(c=>{
+  c.onclick = ()=>{ stockFilter.owned = c.dataset.owned; renderStock(); };
+});
+
+/* ============================= DISPLAY MODE ============================= */
+const DISPLAY_OPTIONS = [
+  { key:'auto', title:'Automatique', sub:"Détecte la taille de l'écran et s'adapte à chaque ouverture.",
+    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>' },
+  { key:'desktop', title:'Ordinateur de bureau', sub:'Barre latérale et grille de peintures sur plusieurs colonnes.',
+    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  { key:'tablet', title:'iPad Pro 13 pouces', sub:'Mise en page élargie, barre latérale, deux colonnes.',
+    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M10 18h4"/></svg>' },
+  { key:'phone', title:'iPhone SE (2020)', sub:'Interface compacte, un seul écran étroit, navigation en bas.',
+    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10.5 18.5h3"/></svg>' }
+];
+let displayPref = 'auto';
+
+function detectDeviceMode(){
+  const w = window.innerWidth;
+  if(w < 700) return 'phone';
+  if(w < 1180) return 'tablet';
+  return 'desktop';
+}
+function effectiveDisplayMode(){
+  return displayPref === 'auto' ? detectDeviceMode() : displayPref;
+}
+function applyDisplayMode(){
+  document.body.dataset.display = effectiveDisplayMode();
+}
+async function loadDisplayPref(){
+  displayPref = lsGet(LS_KEYS.displayPref, 'auto');
+}
+async function saveDisplayPref(){
+  lsSet(LS_KEYS.displayPref, displayPref);
+}
+function renderDisplayChoices(){
+  const el = document.getElementById('displayChoices');
+  el.innerHTML = DISPLAY_OPTIONS.map(o=>`
+    <div class="choice-row ${displayPref===o.key?'active':''}" data-mode="${o.key}">
+      <div class="choice-icon">${o.icon}</div>
+      <div class="choice-text">
+        <div class="choice-title">${o.title}</div>
+        <div class="choice-sub">${o.sub}</div>
+      </div>
+      <div class="radio"></div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.choice-row').forEach(row=>{
+    row.onclick = async ()=>{
+      displayPref = row.dataset.mode;
+      await saveDisplayPref();
+      applyDisplayMode();
+      renderDisplayChoices();
+      updateDisplayCurrentNote();
+    };
+  });
+}
+function updateDisplayCurrentNote(){
+  const note = document.getElementById('displayCurrentNote');
+  const eff = effectiveDisplayMode();
+  const label = DISPLAY_OPTIONS.find(o=>o.key===eff)?.title || eff;
+  note.textContent = displayPref === 'auto'
+    ? `Mode détecté actuellement : ${label} (largeur d'écran : ${window.innerWidth}px).`
+    : `Mode forcé manuellement : ${label}.`;
+}
+document.getElementById('btnDisplay').onclick = ()=>{
+  renderDisplayChoices();
+  updateDisplayCurrentNote();
+  openModal('modalDisplay');
+};
+let resizeTimer = null;
+window.addEventListener('resize', ()=>{
+  if(displayPref !== 'auto') return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    applyDisplayMode();
+    if(!document.getElementById('modalDisplay').classList.contains('hidden')) updateDisplayCurrentNote();
+  }, 200);
+});
+
+/* ============================= SYNC MODAL ============================= */
+function refreshSyncModal(){
+  const cfg = getGithubConfig();
+  const configured = !!cfg;
+  document.getElementById('syncConfigured').style.display = configured ? 'block' : 'none';
+  document.getElementById('syncUnconfigured').style.display = configured ? 'none' : 'block';
+  if(configured){
+    document.getElementById('syncGistIdDisplay').value = cfg.gistId;
+  } else {
+    document.getElementById('syncGistId').value = '';
+    document.getElementById('syncToken').value = '';
+    document.getElementById('syncStatusMsg').style.display = 'none';
+  }
+}
+document.getElementById('btnSync').onclick = ()=>{
+  refreshSyncModal();
+  openModal('modalSync');
+};
+document.getElementById('syncConnectBtn').onclick = async ()=>{
+  const gistId = document.getElementById('syncGistId').value.trim();
+  const token = document.getElementById('syncToken').value.trim();
+  const msg = document.getElementById('syncStatusMsg');
+  if(!gistId || !token){
+    msg.style.display = 'block'; msg.className = 'lookup-status warn';
+    msg.textContent = "Merci de renseigner l'identifiant du Gist et le token.";
+    return;
+  }
+  const btn = document.getElementById('syncConnectBtn');
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  msg.style.display = 'block'; msg.className = 'lookup-status'; msg.textContent = 'Vérification...';
+  try{
+    await testGithubConnection(gistId, token);
+    setGithubConfig({ gistId, token });
+    const cloud = await loadFromCloud();
+    if(cloud && Array.isArray(cloud.paints) && cloud.paints.length){ paints = cloud.paints; applyRenames(); applyRangeFixes(); mergeCatalog(); savePaintsLocal(); }
+    if(cloud && Array.isArray(cloud.mixes)){ mixes = cloud.mixes; saveMixesLocal(); }
+    await pushToCloud();
+    renderStock(); renderSuggestions(); renderMixes(); renderShoppingList();
+    msg.className = 'lookup-status ok';
+    msg.textContent = 'Connecté ! Synchronisation activée.';
+    refreshSyncModal();
+  }catch(e){
+    msg.className = 'lookup-status err';
+    msg.textContent = "Connexion impossible. Vérifiez l'identifiant du Gist et le token (scope Gist requis).";
+  }
+  btn.disabled = false; btn.textContent = 'Connecter';
+};
+document.getElementById('syncTestBtn').onclick = async ()=>{
+  const btn = document.getElementById('syncTestBtn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Test...';
+  const cloud = await loadFromCloud();
+  setSyncStatus(cloud ? 'ok' : 'error');
+  btn.disabled = false; btn.textContent = original;
+};
+document.getElementById('syncDisconnectBtn').onclick = ()=>{
+  if(confirm('Se déconnecter de la synchronisation GitHub ? Vos données restent sur cet appareil mais ne seront plus envoyées vers le Gist.')){
+    clearGithubConfig();
+    setSyncStatus('local');
+    refreshSyncModal();
+  }
+};
+
+/* ============================= INIT ============================= */
+(async function init(){
+  await loadDisplayPref();
+  applyDisplayMode();
+  await loadState();
+  renderStock();
+  renderSuggestions();
+  renderMixes();
+  renderShoppingList();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.error('Service worker non enregistré', e));
+  });
+}
+</script>
+</body>
+</html>
