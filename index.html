@@ -132,9 +132,17 @@ input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass)
 .paint-name{font-size:14.5px; font-weight:600; color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px;}
 .paint-name .qty-badge{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--brass); background:rgba(184,146,90,0.12); border:1px solid var(--line); padding:0px 5px; border-radius:8px; font-weight:600; flex-shrink:0;}
 .paint-name .metal-badge{font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--panel); background:var(--brass-bright); width:15px; height:15px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+.brand-group-header{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  font-family:'Oswald',sans-serif; font-weight:700; font-size:15px; letter-spacing:0.06em; text-transform:uppercase; color:var(--bone);
+  margin:20px 0 8px; padding:9px 13px; background:var(--panel-raised); border-radius:8px; border-left:4px solid var(--muted);
+  box-shadow:0 1px 0 rgba(0,0,0,0.2);
+}
+.brand-group-header:first-child{margin-top:0;}
+.brand-group-header .count{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0; text-transform:none; color:var(--muted); font-weight:500;}
 .range-group-label{
-  font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--brass);
-  margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--line);
+  font-family:'Oswald',sans-serif; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--brass);
+  margin:12px 0 6px 6px; padding:2px 0 2px 10px; border-left:2px solid var(--line);
 }
 .range-group-label:first-child{margin-top:0;}
 .qty-stepper{display:flex; align-items:center; gap:6px; flex-shrink:0; background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:2px 4px;}
@@ -1411,6 +1419,12 @@ function cartIcon(){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>`;
 }
 const RANGE_ORDER = ['Base','Layer','Contrast','Shade','Technical','Texture','Dry','Glaze','Spray'];
+const BRAND_ACCENT = {
+  'Citadel': '#b0483f',
+  'Vallejo': '#3d7a9c',
+  'Army Painter': '#4f9c5a',
+  'default': '#6f6659'
+};
 function rangeSortIndex(range){
   const i = RANGE_ORDER.indexOf(range);
   return i === -1 ? RANGE_ORDER.length : i;
@@ -1443,13 +1457,22 @@ function renderStock(){
   }
 
   let html = '';
-  let currentGroup = null;
+  let currentBrand = null;
+  let currentRange = null;
+  const brandCounts = {};
+  list.forEach(p=>{ brandCounts[p.brand] = (brandCounts[p.brand]||0) + 1; });
+
   list.forEach(p=>{
-    const groupKey = p.brand + '|' + (p.range || '—');
-    if(groupKey !== currentGroup){
-      currentGroup = groupKey;
-      const groupLabel = stockFilter.brand === 'all' ? `${p.brand} · ${p.range || '—'}` : (p.range || '—');
-      html += `<div class="range-group-label">${escapeHtml(groupLabel)}</div>`;
+    if(stockFilter.brand === 'all' && p.brand !== currentBrand){
+      currentBrand = p.brand;
+      currentRange = null;
+      const accent = BRAND_ACCENT[p.brand] || BRAND_ACCENT.default;
+      html += `<div class="brand-group-header" style="border-left-color:${accent};"><span>${escapeHtml(p.brand)}</span><span class="count">${brandCounts[p.brand]} peinture${brandCounts[p.brand]>1?'s':''}</span></div>`;
+    }
+    const rangeVal = p.range || '—';
+    if(rangeVal !== currentRange){
+      currentRange = rangeVal;
+      html += `<div class="range-group-label">${escapeHtml(rangeVal)}</div>`;
     }
     const metaBits = [p.brand, p.range||'—'];
     if(p.code) metaBits.push(p.code);
