@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arsenal-chromatique-v1';
+const CACHE_NAME = 'arsenal-chromatique-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -26,13 +26,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Ne jamais mettre en cache les appels à l'API GitHub : toujours aller au réseau.
-  if (url.hostname === 'api.github.com') {
-    event.respondWith(fetch(event.request));
+  // Ne jamais mettre en cache quoi que ce soit d'externe à l'application :
+  // API GitHub, API Anthropic, serveur Ollama personnel... tout passe direct au réseau.
+  // Cela évite de conserver des données personnelles ou des réponses de modèles
+  // dans le cache du navigateur.
+  if (url.origin !== self.location.origin) {
     return;
   }
 
-  // Pour le reste (l'app elle-même), stratégie cache d'abord avec repli réseau,
+  // Pour l'app elle-même (même origine), stratégie cache d'abord avec repli réseau,
   // puis mise à jour du cache en arrière-plan.
   if (event.request.method === 'GET') {
     event.respondWith(

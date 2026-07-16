@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none';">
 <title>Arsenal Chromatique</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#131110">
@@ -191,6 +192,9 @@ input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass)
 .claude-mix-box{background:var(--panel-raised); border:1px solid var(--brass); border-radius:var(--radius); padding:13px 14px;}
 .claude-mix-head{display:flex; align-items:center; gap:8px; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--brass-bright); margin-bottom:8px;}
 .claude-sigil{width:14px; height:14px; border-radius:50%; background:conic-gradient(from 210deg, var(--rust), var(--brass), var(--rust)); flex-shrink:0;}
+.ollama-mix-box{background:var(--panel-raised); border:1px solid var(--ok); border-radius:var(--radius); padding:13px 14px; margin-top:10px;}
+.ollama-mix-head{display:flex; align-items:center; gap:8px; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:#7fb56f; margin-bottom:8px;}
+.ollama-sigil{width:14px; height:14px; border-radius:4px; background:var(--ok); flex-shrink:0;}
 .mix-compare{display:flex; align-items:center; gap:14px; margin-bottom:10px;}
 .compare-block{text-align:center;}
 .compare-block .swatch{width:52px; height:52px; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15), 0 0 0 1px var(--line);}
@@ -579,6 +583,51 @@ nav.tabbar{
     <div class="modal-footer">
       <button class="btn ghost" data-close="modalClaudeKey">Annuler</button>
       <button class="btn primary" id="claudeKeySaveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Ollama local model -->
+<div class="modal-backdrop hidden" id="modalOllama">
+  <div class="modal">
+    <button class="close-x" data-close="modalOllama">&times;</button>
+    <h3>Mélange suggéré par votre Mac</h3>
+    <div class="modal-sub">Appelle un modèle Ollama installé sur votre Mac, sur votre réseau privé. Rien ne quitte votre réseau, aucun compte, aucune facturation.</div>
+    <div class="lookup-status" style="margin-bottom:14px;">
+      Cette fonctionnalité nécessite qu'Ollama soit joignable en <b style="color:var(--brass);">HTTPS</b> (Safari bloque les appels HTTPS→HTTP). Deux façons d'y arriver — détails complets dans le README :
+      <br>• <b>Tailscale Serve</b> (le plus simple) : installez Tailscale sur le Mac et l'iPad, puis <span class="mono" style="color:var(--brass);">tailscale serve https / http://localhost:11434</span> sur le Mac. Utilisez ensuite l'adresse <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span> ci-dessous, port 443.
+      <br>• <b>mkcert + Caddy</b> : certificat local à installer une fois sur l'iPad, entièrement hors ligne, sans service tiers.
+    </div>
+    <div class="field">
+      <label>Adresse ou nom d'hôte HTTPS du Mac</label>
+      <input type="text" id="ollamaHost" placeholder="ex. mon-mac.tailnet.ts.net">
+    </div>
+    <div class="field">
+      <label>Port</label>
+      <input type="text" id="ollamaPort" placeholder="443" value="443">
+    </div>
+    <div class="field">
+      <label>Modèle</label>
+      <select id="ollamaModel">
+        <option value="qwen3:14b">qwen3:14b — recommandé, généraliste</option>
+        <option value="qwen3.6:35b-a3b">qwen3.6:35b-a3b — meilleure qualité, plus lent</option>
+        <option value="devstral:24b">devstral:24b — spécialisé code</option>
+        <option value="codestral:22b">codestral:22b — spécialisé code</option>
+        <option value="qwen3-coder:30b">qwen3-coder:30b — spécialisé code</option>
+        <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b — spécialisé code, petit</option>
+        <option value="custom">Autre (saisir le nom)...</option>
+      </select>
+    </div>
+    <div class="field" id="ollamaCustomModelField" style="display:none;">
+      <label>Nom exact du modèle</label>
+      <input type="text" id="ollamaCustomModel" placeholder="ex. mon-modele:latest">
+    </div>
+    <div class="lookup-status" id="ollamaStatus" style="display:none;"></div>
+    <div class="lookup-status" style="margin-bottom:14px;">Avec Tailscale Serve, Ollama n'a rien de spécial à faire (le proxy tourne sur le Mac). Avec mkcert + Caddy, Caddy doit rediriger le port HTTPS choisi vers <span class="mono" style="color:var(--brass);">localhost:11434</span> (le port où tourne Ollama par défaut). Le Mac et l'iPad doivent être connectés (même Wi-Fi, ou même tailnet Tailscale).</div>
+    <div class="modal-footer">
+      <button class="btn ghost" data-close="modalOllama">Annuler</button>
+      <button class="btn small" id="ollamaTestBtn">Tester</button>
+      <button class="btn primary" id="ollamaSaveBtn">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -996,7 +1045,8 @@ const uid = () => 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toS
 /* ============================= STOCKAGE LOCAL + SYNCHRO GITHUB GIST ============================= */
 const LS_KEYS = {
   paints: 'ac_paints', mixes: 'ac_mixes', importFlag: 'ac_stockImportV3',
-  displayPref: 'ac_displayPref', github: 'ac_github_config', claudeKey: 'ac_claude_api_key'
+  displayPref: 'ac_displayPref', github: 'ac_github_config', claudeKey: 'ac_claude_api_key',
+  ollama: 'ac_ollama_config'
 };
 function lsGet(key, fallback){
   try{ const v = localStorage.getItem(key); return v!==null ? JSON.parse(v) : fallback; }
@@ -1351,7 +1401,7 @@ function renderBrandChips(){
   const el = document.getElementById('brandChips');
   el.innerHTML = brands.map(b=>{
     const label = b==='all' ? 'Toutes marques' : b;
-    return `<div class="chip ${stockFilter.brand===b?'active':''}" data-brand="${b}">${label}</div>`;
+    return `<div class="chip ${stockFilter.brand===b?'active':''}" data-brand="${escapeHtml(b)}">${escapeHtml(label)}</div>`;
   }).join('');
   el.querySelectorAll('.chip').forEach(c=>{
     c.onclick = ()=>{ stockFilter.brand = c.dataset.brand; renderStock(); };
@@ -1405,7 +1455,7 @@ function renderStock(){
     if(p.code) metaBits.push(p.code);
     html += `
       <div class="paint-row">
-        <div class="pot-lid ${p.owned?'':'unowned'}" style="background:${p.hex}"></div>
+        <div class="pot-lid ${p.owned?'':'unowned'}" style="background:${sanitizeHex(p.hex)}"></div>
         <div class="paint-info">
           <div class="paint-name">${escapeHtml(p.name)}${p.metallic ? '<span class="metal-badge" title="Peinture métallique">M</span>' : ''}</div>
           <div class="paint-meta">${metaBits.map(escapeHtml).join(' · ')} · <span class="hex">${p.hex}</span></div>
@@ -1475,6 +1525,10 @@ function renderStock(){
 function updateStockCount(){
   document.getElementById('stockCountNum').textContent = paints.filter(p=>p.owned).length;
 }
+function sanitizeHex(v, fallback){
+  const s = String(v == null ? '' : v).trim();
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s.toUpperCase() : (fallback || '#888888');
+}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -1499,7 +1553,7 @@ function renderSuggestions(){
     return `
     <div class="suggest-card" data-card="${p.id}">
       <div class="suggest-head">
-        <div class="pot-lid" style="background:${p.hex}"></div>
+        <div class="pot-lid" style="background:${sanitizeHex(p.hex)}"></div>
         <div class="suggest-title">${escapeHtml(p.name)}<span class="meta">${escapeHtml(p.range)} · <span class="mono">${p.hex}</span></span></div>
         <button class="btn small ${isOpen?'':'primary'}" data-toggle="${p.id}">${isOpen?'Masquer':'Voir mélange'}</button>
       </div>
@@ -1535,13 +1589,13 @@ function renderSuggestDetail(paintId){
         <div class="mix-proposal">
           <div class="mix-proposal-label">${escapeHtml(prop.label)}</div>
           <div class="mix-compare">
-            <div class="compare-block"><div class="swatch" style="background:${target.hex}"></div><div class="cap">Cible</div></div>
+            <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(target.hex)}"></div><div class="cap">Cible</div></div>
             <div class="arrow">→</div>
-            <div class="compare-block"><div class="swatch" style="background:${mixedHex}"></div><div class="cap">Mélange</div></div>
+            <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(mixedHex)}"></div><div class="cap">Mélange</div></div>
             <div class="match-badge ${quality.cls}">${quality.label}</div>
           </div>
           <ul class="recipe-list">
-            ${prop.components.map(c=>`<li><span class="dot" style="background:${c.paint.hex}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
+            ${prop.components.map(c=>`<li><span class="dot" style="background:${sanitizeHex(c.paint.hex)}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
           </ul>
           <button class="btn primary small" data-try="offline-${idx}">Enregistrer cet essai</button>
         </div>
@@ -1552,6 +1606,7 @@ function renderSuggestDetail(paintId){
   container.innerHTML = `
     <div class="mix-detail">
       <div id="claude-block-${target.id}"></div>
+      <div id="ollama-block-${target.id}"></div>
       <div class="mix-proposal-sep"></div>
       ${offlineHtml}
       ${proposals.length ? `<div class="recipe-note">Estimations hors ligne calculées à partir de vos peintures en stock (moyenne pondérée des teintes). À affiner à l'oeil sur palette humide — le rendu réel dépend du mélange physique des pigments.</div>` : ''}
@@ -1573,6 +1628,7 @@ function renderSuggestDetail(paintId){
     renderBuyReco(target);
   }
   renderClaudeBlock(target);
+  renderOllamaBlock(target);
 }
 function renderBuyReco(target){
   const holder = document.getElementById('reco-'+target.id);
@@ -1649,13 +1705,13 @@ function renderClaudeBlock(target){
     <div class="claude-mix-box">
       <div class="claude-mix-head"><span class="claude-sigil"></span>Mélange suggéré par Claude</div>
       <div class="mix-compare">
-        <div class="compare-block"><div class="swatch" style="background:${target.hex}"></div><div class="cap">Cible</div></div>
+        <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(target.hex)}"></div><div class="cap">Cible</div></div>
         <div class="arrow">→</div>
-        <div class="compare-block"><div class="swatch" style="background:${mixedHex}"></div><div class="cap">Mélange</div></div>
+        <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(mixedHex)}"></div><div class="cap">Mélange</div></div>
         <div class="match-badge ${quality.cls}">${quality.label}</div>
       </div>
       <ul class="recipe-list">
-        ${prop.components.map(c=>`<li><span class="dot" style="background:${c.paint.hex}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
+        ${prop.components.map(c=>`<li><span class="dot" style="background:${sanitizeHex(c.paint.hex)}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
       </ul>
       ${prop.note ? `<div class="recipe-note">${escapeHtml(prop.note)}</div>` : ''}
       <div style="display:flex; gap:8px;">
@@ -1760,6 +1816,228 @@ document.getElementById('claudeKeySaveBtn').onclick = ()=>{
   }
 };
 
+/* ============================= OLLAMA MIX (MODÈLE LOCAL) ============================= */
+let ollamaMixCache = {};
+function getOllamaConfig(){
+  return lsGet(LS_KEYS.ollama, null);
+}
+function hasOllamaConfig(){
+  const c = getOllamaConfig();
+  return !!(c && c.host && c.port && c.model);
+}
+function ollamaBaseUrl(cfg){
+  return `https://${cfg.host}:${cfg.port}`;
+}
+document.getElementById('ollamaModel').addEventListener('change', (e)=>{
+  document.getElementById('ollamaCustomModelField').style.display = e.target.value === 'custom' ? 'block' : 'none';
+});
+function openOllamaModal(){
+  const cfg = getOllamaConfig();
+  document.getElementById('ollamaHost').value = cfg ? cfg.host : '';
+  document.getElementById('ollamaPort').value = cfg ? cfg.port : '443';
+  const modelSelect = document.getElementById('ollamaModel');
+  const knownValues = [...modelSelect.options].map(o=>o.value);
+  if(cfg && knownValues.includes(cfg.model)){
+    modelSelect.value = cfg.model;
+    document.getElementById('ollamaCustomModelField').style.display = 'none';
+  } else if(cfg && cfg.model){
+    modelSelect.value = 'custom';
+    document.getElementById('ollamaCustomModelField').style.display = 'block';
+    document.getElementById('ollamaCustomModel').value = cfg.model;
+  } else {
+    modelSelect.value = 'qwen3:14b';
+    document.getElementById('ollamaCustomModelField').style.display = 'none';
+  }
+  document.getElementById('ollamaStatus').style.display = 'none';
+  openModal('modalOllama');
+}
+function readOllamaFormModel(){
+  const sel = document.getElementById('ollamaModel').value;
+  return sel === 'custom' ? document.getElementById('ollamaCustomModel').value.trim() : sel;
+}
+async function testOllamaConnection(cfg){
+  const res = await fetch(ollamaBaseUrl(cfg) + '/api/tags', { method:'GET' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+document.getElementById('ollamaTestBtn').onclick = async ()=>{
+  const host = document.getElementById('ollamaHost').value.trim();
+  const port = document.getElementById('ollamaPort').value.trim() || '443';
+  const statusEl = document.getElementById('ollamaStatus');
+  if(!host){
+    statusEl.style.display = 'block'; statusEl.className = 'lookup-status warn';
+    statusEl.textContent = "Indiquez l'adresse ou le nom d'hôte HTTPS du Mac.";
+    return;
+  }
+  statusEl.style.display = 'block'; statusEl.className = 'lookup-status';
+  statusEl.textContent = 'Connexion en cours...';
+  try{
+    const data = await testOllamaConnection({host, port});
+    const names = (data.models||[]).map(m=>m.name).join(', ');
+    statusEl.className = 'lookup-status ok';
+    statusEl.textContent = names ? `Connecté. Modèles détectés : ${names}` : 'Connecté, mais aucun modèle installé détecté.';
+  }catch(e){
+    statusEl.className = 'lookup-status err';
+    statusEl.textContent = "Connexion impossible. Vérifiez l'adresse, le port, que le proxy HTTPS (Tailscale Serve ou Caddy) tourne bien sur le Mac, et que les deux appareils sont connectés (même Wi-Fi ou même tailnet).";
+  }
+};
+document.getElementById('ollamaSaveBtn').onclick = ()=>{
+  const host = document.getElementById('ollamaHost').value.trim();
+  const port = document.getElementById('ollamaPort').value.trim() || '443';
+  const model = readOllamaFormModel();
+  const statusEl = document.getElementById('ollamaStatus');
+  if(!host || !model){
+    statusEl.style.display = 'block'; statusEl.className = 'lookup-status warn';
+    statusEl.textContent = "Indiquez au moins l'adresse du Mac et un modèle.";
+    return;
+  }
+  lsSet(LS_KEYS.ollama, {host, port, model});
+  closeModal('modalOllama');
+  if(openSuggestId){
+    const t = paints.find(p=>p.id===openSuggestId);
+    if(t) askOllamaForMix(t);
+  }
+};
+
+function renderOllamaBlock(target){
+  const holder = document.getElementById('ollama-block-'+target.id);
+  if(!holder) return;
+  const state = ollamaMixCache[target.id];
+
+  if(!state){
+    const configured = hasOllamaConfig();
+    holder.innerHTML = `
+      <div class="ollama-mix-box">
+        <div class="ollama-mix-head"><span class="ollama-sigil"></span>Mélange suggéré par votre Mac</div>
+        <p class="recipe-note">Interroge un modèle Ollama installé sur votre Mac, en local sur votre réseau — aucune donnée envoyée en dehors de chez vous, aucun compte, aucune facturation.</p>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button class="btn primary small" id="ollama-ask-${target.id}">🖥️ Demander à mon Mac</button>
+          ${configured ? `<button class="btn ghost small" id="ollama-changecfg-${target.id}">Changer la configuration</button>` : ''}
+        </div>
+      </div>`;
+    document.getElementById(`ollama-ask-${target.id}`).onclick = ()=> askOllamaForMix(target);
+    if(configured) document.getElementById(`ollama-changecfg-${target.id}`).onclick = ()=> openOllamaModal();
+    return;
+  }
+
+  if(state.loading){
+    holder.innerHTML = `
+      <div class="ollama-mix-box">
+        <div class="ollama-mix-head"><span class="ollama-sigil"></span>Mélange suggéré par votre Mac</div>
+        <p class="recipe-note">Le modèle local réfléchit à un mélange pour cette teinte...</p>
+      </div>`;
+    return;
+  }
+
+  if(state.error){
+    holder.innerHTML = `
+      <div class="ollama-mix-box">
+        <div class="ollama-mix-head"><span class="ollama-sigil"></span>Mélange suggéré par votre Mac</div>
+        <div class="lookup-status err">${escapeHtml(state.error)}</div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn small" id="ollama-retry-${target.id}">Réessayer</button>
+          <button class="btn ghost small" id="ollama-changecfg2-${target.id}">Vérifier la configuration</button>
+        </div>
+      </div>`;
+    document.getElementById(`ollama-retry-${target.id}`).onclick = ()=> askOllamaForMix(target);
+    document.getElementById(`ollama-changecfg2-${target.id}`).onclick = ()=> openOllamaModal();
+    return;
+  }
+
+  const prop = state.result;
+  const mixedHex = mixedHexFromComponents(prop.components);
+  const quality = matchQuality(prop.distance);
+  holder.innerHTML = `
+    <div class="ollama-mix-box">
+      <div class="ollama-mix-head"><span class="ollama-sigil"></span>Mélange suggéré par votre Mac (${escapeHtml(getOllamaConfig().model)})</div>
+      <div class="mix-compare">
+        <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(target.hex)}"></div><div class="cap">Cible</div></div>
+        <div class="arrow">→</div>
+        <div class="compare-block"><div class="swatch" style="background:${sanitizeHex(mixedHex)}"></div><div class="cap">Mélange</div></div>
+        <div class="match-badge ${quality.cls}">${quality.label}</div>
+      </div>
+      <ul class="recipe-list">
+        ${prop.components.map(c=>`<li><span class="dot" style="background:${sanitizeHex(c.paint.hex)}"></span><span class="pct">${c.pct}%</span>${escapeHtml(c.paint.name)} <span style="color:var(--muted); font-size:11px; margin-left:4px;">(${escapeHtml(c.paint.brand)})</span></li>`).join('')}
+      </ul>
+      ${prop.note ? `<div class="recipe-note">${escapeHtml(prop.note)}</div>` : ''}
+      <div style="display:flex; gap:8px;">
+        <button class="btn primary small" id="ollama-try-${target.id}">Enregistrer cet essai</button>
+        <button class="btn small" id="ollama-retry2-${target.id}">Reformuler</button>
+      </div>
+    </div>`;
+  document.getElementById(`ollama-try-${target.id}`).onclick = ()=>{
+    pendingComment = { target, components: prop.components, mixedHex };
+    document.getElementById('commentSub').textContent = `${target.name} — ${prop.components.map(c=>c.pct+'% '+c.paint.name).join(' + ')}`;
+    document.getElementById('cText').value = '';
+    openModal('modalComment');
+  };
+  document.getElementById(`ollama-retry2-${target.id}`).onclick = ()=> askOllamaForMix(target);
+}
+
+async function askOllamaForMix(target){
+  if(!hasOllamaConfig()){
+    openOllamaModal();
+    return;
+  }
+  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, !!target.metallic));
+  if(pool.length === 0){
+    ollamaMixCache[target.id] = { loading:false, error:"Aucune peinture éligible en stock pour construire un mélange.", result:null };
+    renderOllamaBlock(target);
+    return;
+  }
+  ollamaMixCache[target.id] = { loading:true, error:null, result:null };
+  renderOllamaBlock(target);
+
+  const cfg = getOllamaConfig();
+  const listText = pool.map(p=>`- ${p.name} (${p.brand}, ${p.hex})`).join('\n');
+  const prompt = `Tu es un expert en peinture de figurines Warhammer. Je veux approcher la teinte suivante avec les peintures que je possède déjà.
+
+Teinte cible : ${target.name} (${target.hex}, gamme ${target.range})
+
+Peintures disponibles (utilise UNIQUEMENT des noms de cette liste, recopiés exactement) :
+${listText}
+
+Propose un mélange de 2 à 4 peintures maximum parmi cette liste, avec un pourcentage pour chacune (total 100).
+
+Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises markdown, au format exact :
+{"components":[{"name":"nom exact tel que dans la liste","pct":nombre}],"note":"courte astuce de mélange en une phrase, en français"}`;
+
+  try{
+    const res = await fetch(ollamaBaseUrl(cfg) + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [{ role:'user', content: prompt }],
+        stream: false,
+        format: 'json'
+      })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const content = data.message && data.message.content ? data.message.content : '';
+    const cleaned = content.replace(/```json|```/g,'').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error("Réponse inattendue du modèle local.");
+    const parsed = JSON.parse(match[0]);
+    if(!Array.isArray(parsed.components) || parsed.components.length===0) throw new Error("Le modèle n'a proposé aucun composant.");
+
+    const components = [];
+    for(const c of parsed.components){
+      const matchPaint = pool.find(p=>p.name.toLowerCase() === String(c.name||'').toLowerCase().trim());
+      if(!matchPaint) throw new Error(`Le modèle a mentionné une peinture hors de votre stock ("${c.name}").`);
+      components.push({ paint: matchPaint, pct: Math.round(Number(c.pct)||0) });
+    }
+    const mixedHex = mixedHexFromComponents(components);
+    const distance = colorDistance(mixedHex, target.hex);
+    ollamaMixCache[target.id] = { loading:false, error:null, result:{ components, note: parsed.note||'', distance } };
+  }catch(e){
+    const msg = (e.message || "Impossible de contacter le modèle local.") + " Vérifiez que le proxy HTTPS (Tailscale Serve ou Caddy) tourne sur le Mac, que le certificat est bien accepté par l'iPad, et que les deux appareils sont connectés.";
+    ollamaMixCache[target.id] = { loading:false, error: msg, result:null };
+  }
+  renderOllamaBlock(target);
+}
+
 /* ============================= RENDER: MIXES ============================= */
 function renderMixes(){
   const el = document.getElementById('mixesList');
@@ -1773,11 +2051,11 @@ function renderMixes(){
     return `
     <div class="mix-card">
       <div class="mix-card-head">
-        <div class="swatch" style="background:${m.mixedHex}"></div>
+        <div class="swatch" style="background:${sanitizeHex(m.mixedHex)}"></div>
         <div class="mix-card-title">${escapeHtml(m.targetName)}<span class="date">${dateStr}</span></div>
-        <button class="del-btn" data-delmix="${m.id}">&times;</button>
+        <button class="del-btn" data-delmix="${escapeHtml(m.id)}">&times;</button>
       </div>
-      <div class="mix-recipe-line">${m.components.map(c=>c.pct+'% '+c.name).join(' + ')}</div>
+      <div class="mix-recipe-line">${m.components.map(c=>escapeHtml(String(c.pct)+'% '+c.name)).join(' + ')}</div>
       ${m.comment ? `<div class="mix-comment">${escapeHtml(m.comment)}</div>` : ''}
       ${m.notes && m.notes.length ? `<div class="mix-comment-log">${m.notes.map(n=>`<div class="entry"><span class="d">${new Date(n.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span>${escapeHtml(n.text)}</div>`).join('')}</div>` : ''}
       <div class="mix-actions">
@@ -1824,7 +2102,7 @@ function renderShoppingList(){
     if(p.code) metaBits.push(p.code);
     return `
     <div class="shop-row">
-      <div class="pot-lid" style="background:${p.hex}"></div>
+      <div class="pot-lid" style="background:${sanitizeHex(p.hex)}"></div>
       <div class="paint-info">
         <div class="paint-name">${escapeHtml(p.name)}</div>
         <div class="paint-meta">${metaBits.map(escapeHtml).join(' · ')} · <span class="hex">${p.hex}</span></div>
@@ -2099,40 +2377,73 @@ document.getElementById('importConfirmBtn').onclick = async ()=>{
   if(!pendingImport) return;
   let addedPaints = 0, updatedPaints = 0, addedMixes = 0, skippedMixes = 0;
 
+  const cleanStr = (v, max)=> String(v == null ? '' : v).slice(0, max || 120);
+  const cleanInt = (v, min, max, fallback)=>{
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+  };
+
   pendingImport.paints.forEach(ip=>{
-    if(!ip || !ip.name || !ip.brand || !ip.hex) return;
-    let existing = ip.id ? paints.find(p=>p.id===ip.id) : null;
-    if(!existing){
-      existing = paints.find(p=> p.brand===ip.brand && p.name.toLowerCase()===ip.name.toLowerCase() && (p.code||null)===(ip.code||null));
-    }
+    if(!ip || typeof ip !== 'object') return;
+    const name = cleanStr(ip.name, 120).trim();
+    const brand = cleanStr(ip.brand, 60).trim();
+    if(!name || !brand) return;
+    const code = ip.code ? cleanStr(ip.code, 40).trim() : null;
+    let existing = paints.find(p=> p.brand===brand && p.name.toLowerCase()===name.toLowerCase() && (p.code||null)===code);
     if(existing){
-      existing.owned = ip.owned !== undefined ? !!ip.owned : existing.owned;
-      existing.toBuy = ip.toBuy !== undefined ? !!ip.toBuy : existing.toBuy;
-      if(ip.qty) existing.qty = ip.qty;
+      if(ip.owned !== undefined) existing.owned = !!ip.owned;
+      if(ip.toBuy !== undefined) existing.toBuy = !!ip.toBuy;
+      if(ip.qty !== undefined) existing.qty = cleanInt(ip.qty, 1, 99, 1);
       updatedPaints++;
     } else {
       paints.push({
-        id: uid(), name: ip.name, brand: ip.brand, range: ip.range || '', hex: ip.hex,
-        code: ip.code || null, qty: ip.qty || 1, owned: !!ip.owned, toBuy: !!ip.toBuy,
-        custom: true, mixable: ip.mixable !== false
+        id: uid(), name, brand, range: cleanStr(ip.range, 60).trim(),
+        hex: sanitizeHex(ip.hex), code, qty: cleanInt(ip.qty, 1, 99, 1),
+        owned: !!ip.owned, toBuy: !!ip.toBuy,
+        custom: true, mixable: ip.mixable !== false, metallic: ip.metallic === true
       });
       addedPaints++;
     }
   });
 
   pendingImport.mixes.forEach(im=>{
-    if(!im || !im.targetName || !Array.isArray(im.components)) return;
-    const exists = mixes.some(m=> (im.id && m.id===im.id));
+    if(!im || typeof im !== 'object') return;
+    const targetName = cleanStr(im.targetName, 120).trim();
+    if(!targetName || !Array.isArray(im.components)) return;
+
+    const components = im.components
+      .filter(c => c && typeof c === 'object' && cleanStr(c.name, 120).trim())
+      .slice(0, 8)
+      .map(c => ({
+        name: cleanStr(c.name, 120).trim(),
+        brand: cleanStr(c.brand, 60).trim(),
+        hex: sanitizeHex(c.hex),
+        pct: cleanInt(c.pct, 0, 100, 0)
+      }));
+    if(components.length === 0) return;
+
+    const sig = targetName.toLowerCase() + '|' + components.map(c=>c.name.toLowerCase()+':'+c.pct).sort().join(',');
+    const exists = mixes.some(m=>{
+      const ms = cleanStr(m.targetName,120).trim().toLowerCase() + '|' +
+        (m.components||[]).map(c=>String(c.name).toLowerCase()+':'+c.pct).sort().join(',');
+      return ms === sig;
+    });
     if(exists){ skippedMixes++; return; }
+
+    const notes = Array.isArray(im.notes) ? im.notes
+      .filter(n => n && typeof n === 'object' && n.text)
+      .slice(0, 50)
+      .map(n => ({ text: cleanStr(n.text, 2000), date: Number(n.date) || Date.now() })) : [];
+
     mixes.push({
       id: uid(),
-      targetPaintId: im.targetPaintId || null,
-      targetName: im.targetName,
-      mixedHex: im.mixedHex || '#888888',
-      components: im.components,
-      comment: im.comment || '',
-      notes: Array.isArray(im.notes) ? im.notes : [],
-      createdAt: im.createdAt || Date.now()
+      targetPaintId: null,
+      targetName,
+      mixedHex: sanitizeHex(im.mixedHex),
+      components,
+      comment: cleanStr(im.comment, 2000),
+      notes,
+      createdAt: Number(im.createdAt) || Date.now()
     });
     addedMixes++;
   });
