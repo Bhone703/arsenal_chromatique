@@ -616,15 +616,15 @@ nav.tabbar{
   <div class="modal">
     <button class="close-x" data-close="modalOllama">&times;</button>
     <h3>Mélange suggéré par votre Mac</h3>
-    <div class="modal-sub">Appelle un modèle Ollama installé sur votre Mac, sur votre réseau privé. Rien ne quitte votre réseau, aucun compte, aucune facturation.</div>
+    <div class="modal-sub">Appelle un modèle Ollama installé sur votre Mac. Rien ne quitte votre réseau, aucun compte, aucune facturation.</div>
     <div class="lookup-status" style="margin-bottom:14px;">
-      Cette fonctionnalité nécessite qu'Ollama soit joignable en <b style="color:var(--brass);">HTTPS</b> (Safari bloque les appels HTTPS→HTTP). Deux façons d'y arriver — détails complets dans le README :
-      <br>• <b>Tailscale Serve</b> (le plus simple) : installez Tailscale sur le Mac et l'iPad, puis <span class="mono" style="color:var(--brass);">tailscale serve https / http://localhost:11434</span> sur le Mac. Utilisez ensuite l'adresse <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span> ci-dessous, port 443.
-      <br>• <b>mkcert + Caddy</b> : certificat local à installer une fois sur l'iPad, entièrement hors ligne, sans service tiers.
+      <b style="color:var(--brass);">Depuis l'iPad</b>, Ollama doit être joignable en HTTPS (Safari bloque HTTPS→HTTP) — utilisez <b>Tailscale Serve</b> : <span class="mono" style="color:var(--brass);">tailscale serve https / http://localhost:11434</span> sur le Mac, puis l'adresse <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span> ci-dessous, port 443 (détails dans le README).
+      <br>• <b style="color:var(--brass);">Depuis le Mac lui-même</b> (là où tourne Ollama), pas besoin de Tailscale : les navigateurs traitent <span class="mono">localhost</span> comme une origine sécurisée même en HTTP. Utilisez le raccourci ci-dessous.
     </div>
+    <button type="button" class="btn small" id="ollamaUseLocalBtn" style="margin-bottom:14px;">📍 Utiliser Ollama en local (sur ce Mac)</button>
     <div class="field">
-      <label>Adresse ou nom d'hôte HTTPS du Mac</label>
-      <input type="text" id="ollamaHost" placeholder="ex. mon-mac.tailnet.ts.net">
+      <label>Adresse ou nom d'hôte du Mac</label>
+      <input type="text" id="ollamaHost" placeholder="ex. mon-mac.tailnet.ts.net ou localhost">
     </div>
     <div class="field">
       <label>Port</label>
@@ -1920,7 +1920,9 @@ function hasOllamaConfig(){
   return !!(c && c.host && c.port && c.model);
 }
 function ollamaBaseUrl(cfg){
-  return `https://${cfg.host}:${cfg.port}`;
+  const isLocalLoopback = cfg.host === 'localhost' || cfg.host === '127.0.0.1';
+  const scheme = isLocalLoopback ? 'http' : 'https';
+  return `${scheme}://${cfg.host}:${cfg.port}`;
 }
 document.getElementById('ollamaModel').addEventListener('change', (e)=>{
   document.getElementById('ollamaCustomModelField').style.display = e.target.value === 'custom' ? 'block' : 'none';
@@ -1945,6 +1947,14 @@ function openOllamaModal(){
   document.getElementById('ollamaStatus').style.display = 'none';
   openModal('modalOllama');
 }
+document.getElementById('ollamaUseLocalBtn').onclick = ()=>{
+  document.getElementById('ollamaHost').value = 'localhost';
+  document.getElementById('ollamaPort').value = '11434';
+  const statusEl = document.getElementById('ollamaStatus');
+  statusEl.style.display = 'block';
+  statusEl.className = 'lookup-status';
+  statusEl.textContent = "Adresse locale pré-remplie. Ne fonctionne que si vous ouvrez cette appli depuis le Mac où tourne Ollama — sur l'iPad, utilisez plutôt l'adresse Tailscale.";
+};
 function readOllamaFormModel(){
   const sel = document.getElementById('ollamaModel').value;
   return sel === 'custom' ? document.getElementById('ollamaCustomModel').value.trim() : sel;
@@ -1972,7 +1982,7 @@ document.getElementById('ollamaTestBtn').onclick = async ()=>{
     statusEl.textContent = names ? `Connecté. Modèles détectés : ${names}` : 'Connecté, mais aucun modèle installé détecté.';
   }catch(e){
     statusEl.className = 'lookup-status err';
-    statusEl.textContent = "Connexion impossible. Vérifiez l'adresse, le port, que le proxy HTTPS (Tailscale Serve ou Caddy) tourne bien sur le Mac, et que les deux appareils sont connectés (même Wi-Fi ou même tailnet).";
+    statusEl.textContent = "Connexion impossible. Si vous êtes sur l'iPad, vérifiez que Tailscale Serve tourne sur le Mac et que les deux appareils sont bien sur le même tailnet. Si vous êtes sur le Mac lui-même avec l'adresse localhost, vérifiez que Ollama est bien lancé (ollama serve).";
   }
 };
 document.getElementById('ollamaSaveBtn').onclick = ()=>{
@@ -2126,7 +2136,7 @@ Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises m
     const distance = colorDistance(mixedHex, target.hex);
     ollamaMixCache[target.id] = { loading:false, error:null, result:{ components, note: parsed.note||'', distance } };
   }catch(e){
-    const msg = (e.message || "Impossible de contacter le modèle local.") + " Vérifiez que le proxy HTTPS (Tailscale Serve ou Caddy) tourne sur le Mac, que le certificat est bien accepté par l'iPad, et que les deux appareils sont connectés.";
+    const msg = (e.message || "Impossible de contacter le modèle local.") + " Si vous êtes sur l'iPad, vérifiez Tailscale Serve et le tailnet. Si vous êtes sur le Mac avec l'adresse localhost, vérifiez que Ollama tourne (ollama serve).";
     ollamaMixCache[target.id] = { loading:false, error: msg, result:null };
   }
   renderOllamaBlock(target);
