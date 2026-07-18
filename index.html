@@ -626,7 +626,7 @@ nav.tabbar{
     <div class="lookup-status warn" style="margin-bottom:14px;">
       <b>Côté Mac</b>, lancez Ollama lié au réseau privé et autorisant votre appli (voir README, étape 3) :
       <br><span class="mono" style="color:var(--brass);">OLLAMA_HOST=100.x.y.z:11434 OLLAMA_ORIGINS="https://votre-pseudo.github.io" ollama serve</span>
-      <br>puis exposez-le en HTTPS : <span class="mono" style="color:var(--brass);">tailscale serve --bg https / http://localhost:11434</span>
+      <br>puis exposez-le en HTTPS : <span class="mono" style="color:var(--brass);">tailscale serve --bg http://localhost:11434</span>
     </div>
     <div class="field">
       <label>Adresse ou nom d'hôte du Mac</label>
