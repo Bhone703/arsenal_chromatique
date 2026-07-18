@@ -208,6 +208,8 @@ input[type="text"]:focus, textarea:focus, select:focus{border-color:var(--brass)
 .mix-detail{margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);}
 .mix-proposal-label{font-family:'Oswald',sans-serif; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--brass); margin-bottom:8px;}
 .mix-proposal-sep{height:1px; background:var(--line); margin:16px 0;}
+.project-context-field{margin-bottom:14px;}
+.project-context-field input{width:100%;}
 .claude-mix-box{background:var(--panel-raised); border:1px solid var(--brass); border-radius:var(--radius); padding:13px 14px;}
 .claude-mix-head{display:flex; align-items:center; gap:8px; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--brass-bright); margin-bottom:8px;}
 .claude-sigil{width:14px; height:14px; border-radius:50%; background:conic-gradient(from 210deg, var(--rust), var(--brass), var(--rust)); flex-shrink:0;}
@@ -1666,6 +1668,7 @@ function renderSuggestions(){
   if(openSuggestId) renderSuggestDetail(openSuggestId);
 }
 let claudeMixCache = {};
+let projectContext = {};
 
 function renderSuggestDetail(paintId){
   const target = paints.find(p=>p.id===paintId);
@@ -1699,6 +1702,11 @@ function renderSuggestDetail(paintId){
 
   container.innerHTML = `
     <div class="mix-detail">
+      <div class="field project-context-field">
+        <label>Contexte du projet (optionnel)</label>
+        <input type="text" id="project-context-${target.id}" value="${escapeHtml(projectContext[target.id]||'')}" placeholder="ex. Éclaircis de la carapace de Tyranides, flotte-ruche Léviathan">
+        <p class="recipe-note" style="margin-top:5px; margin-bottom:0;">Aide Claude et votre modèle local à mieux cibler leur proposition (technique visée, ampleur du projet...).</p>
+      </div>
       <div id="claude-block-${target.id}"></div>
       <div id="ollama-block-${target.id}"></div>
       <div class="mix-proposal-sep"></div>
@@ -1707,6 +1715,10 @@ function renderSuggestDetail(paintId){
       <div id="reco-${target.id}"></div>
     </div>
   `;
+  const ctxInput = document.getElementById(`project-context-${target.id}`);
+  if(ctxInput){
+    ctxInput.addEventListener('input', (e)=>{ projectContext[target.id] = e.target.value; });
+  }
   proposals.forEach((prop, idx)=>{
     const btn = container.querySelector(`[data-try="offline-${idx}"]`);
     if(!btn) return;
@@ -1725,17 +1737,20 @@ function renderSuggestDetail(paintId){
   renderOllamaBlock(target);
 }
 function renderBuyReco(target){
-  const holder = document.getElementById('reco-'+target.id);
+  renderBuyRecoBox('reco-'+target.id, target, "Ces mélanges s'éloignent trop de la teinte originale pour être approchés fidèlement avec votre stock actuel.");
+}
+function renderBuyRecoBox(holderId, target, reasonText){
+  const holder = document.getElementById(holderId);
   if(!holder) return;
   const draw = ()=>{
     const already = target.toBuy;
     holder.innerHTML = `
       <div class="buy-reco ${already?'added':''}">
         <div class="buy-text">${already
-          ? `<b>Déjà dans la liste de courses.</b> Ces mélanges s'éloignent trop de la teinte originale pour être approchés fidèlement avec votre stock actuel.`
-          : `<b>Mélanges peu fiables.</b> Cette teinte s'éloigne trop de ce que votre stock permet d'approcher — mieux vaut acheter directement le pot original.`}
+          ? `<b>Déjà dans la liste de courses.</b> ${escapeHtml(reasonText)}`
+          : `<b>Recommandation d'achat.</b> ${escapeHtml(reasonText)}`}
         </div>
-        <button class="btn ${already?'small':'warn small'}" data-buyreco="${target.id}">${already ? 'Retirer de la liste de courses' : 'Ajouter à la liste de courses'}</button>
+        <button class="btn ${already?'small':'warn small'}" data-buyreco="${holderId}">${already ? 'Retirer de la liste de courses' : 'Ajouter à la liste de courses'}</button>
       </div>`;
     holder.querySelector('[data-buyreco]').onclick = async ()=>{
       target.toBuy = !target.toBuy;
@@ -1812,6 +1827,7 @@ function renderClaudeBlock(target){
         <button class="btn primary small" id="claude-try-${target.id}">Enregistrer cet essai</button>
         <button class="btn small" id="claude-retry-${target.id}">Reformuler</button>
       </div>
+      <div id="claude-buyreco-${target.id}"></div>
     </div>`;
   document.getElementById(`claude-try-${target.id}`).onclick = ()=>{
     pendingComment = { target, components: prop.components, mixedHex };
@@ -1820,6 +1836,27 @@ function renderClaudeBlock(target){
     openModal('modalComment');
   };
   document.getElementById(`claude-retry-${target.id}`).onclick = ()=> askClaudeForMix(target);
+  if(prop.buyRecommended){
+    renderBuyRecoBox(`claude-buyreco-${target.id}`, target, prop.buyReason || "Claude recommande d'acheter directement cette peinture plutôt que de la mélanger.");
+  }
+}
+function buildMixPrompt(target, pool){
+  const listText = pool.map(p=>`- ${p.name} (${p.brand}, ${p.hex})`).join('\n');
+  const ctx = (projectContext[target.id]||'').trim();
+  const ctxBlock = ctx ? `\nContexte du projet donné par l'utilisateur : ${ctx}\n` : '';
+  return `Tu es un expert en peinture de figurines Warhammer. Je veux approcher la teinte suivante avec les peintures que je possède déjà.
+
+Teinte cible : ${target.name} (${target.hex}, gamme ${target.range})
+${ctxBlock}
+Peintures disponibles (utilise UNIQUEMENT des noms de cette liste, recopiés exactement) :
+${listText}
+
+Propose un mélange de 2 à 4 peintures maximum parmi cette liste, avec un pourcentage pour chacune (total 100). Tu peux t'appuyer sur des recettes de mélange connues de la communauté Warhammer si tu en connais une pour cette teinte précise, et faire une recherche web si cela peut t'aider à trouver une recette éprouvée.
+
+Indique aussi si l'achat direct du pot original serait préférable à un mélange, dans deux cas : (1) aucun mélange satisfaisant n'est possible avec les peintures disponibles listées ci-dessus (écart de teinte trop important), ou (2) le contexte du projet donné par l'utilisateur laisse penser à une quantité de peinture importante à produire (une armée entière, une grande surface répétée...), auquel cas reproduire un mélange à chaque fois est peu pratique et acheter le pot est plus raisonnable. Si aucun contexte n'est donné, ignore le cas (2).
+
+Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises markdown, au format exact :
+{"components":[{"name":"nom exact tel que dans la liste","pct":nombre}],"note":"courte astuce de mélange en une phrase, en français","buyRecommended":true ou false,"buyReason":"si buyRecommended est true, une phrase courte expliquant pourquoi (stock insuffisant, ou quantité du projet), sinon chaîne vide"}`;
 }
 async function askClaudeForMix(target){
   if(!getClaudeApiKey()){
@@ -1835,18 +1872,7 @@ async function askClaudeForMix(target){
   claudeMixCache[target.id] = { loading:true, error:null, result:null };
   renderClaudeBlock(target);
 
-  const listText = pool.map(p=>`- ${p.name} (${p.brand}, ${p.hex})`).join('\n');
-  const prompt = `Tu es un expert en peinture de figurines Warhammer. Je veux approcher la teinte suivante avec les peintures que je possède déjà.
-
-Teinte cible : ${target.name} (${target.hex}, gamme ${target.range})
-
-Peintures disponibles (utilise UNIQUEMENT des noms de cette liste, recopiés exactement) :
-${listText}
-
-Propose un mélange de 2 à 4 peintures maximum parmi cette liste, avec un pourcentage pour chacune (total 100). Tu peux t'appuyer sur des recettes de mélange connues de la communauté Warhammer si tu en connais une pour cette teinte précise, et faire une recherche web si cela peut t'aider à trouver une recette éprouvée.
-
-Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises markdown, au format exact :
-{"components":[{"name":"nom exact tel que dans la liste","pct":nombre}],"note":"courte astuce de mélange en une phrase, en français"}`;
+  const prompt = buildMixPrompt(target, pool);
 
   try{
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1884,7 +1910,10 @@ Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises m
     }
     const mixedHex = mixedHexFromComponents(components);
     const distance = colorDistance(mixedHex, target.hex);
-    claudeMixCache[target.id] = { loading:false, error:null, result:{ components, note: parsed.note||'', distance } };
+    claudeMixCache[target.id] = { loading:false, error:null, result:{
+      components, note: parsed.note||'', distance,
+      buyRecommended: parsed.buyRecommended === true, buyReason: parsed.buyReason || ''
+    } };
   }catch(e){
     claudeMixCache[target.id] = { loading:false, error: (e.message || "Impossible de contacter Claude pour le moment."), result:null };
   }
@@ -2068,6 +2097,7 @@ function renderOllamaBlock(target){
         <button class="btn primary small" id="ollama-try-${target.id}">Enregistrer cet essai</button>
         <button class="btn small" id="ollama-retry2-${target.id}">Reformuler</button>
       </div>
+      <div id="ollama-buyreco-${target.id}"></div>
     </div>`;
   document.getElementById(`ollama-try-${target.id}`).onclick = ()=>{
     pendingComment = { target, components: prop.components, mixedHex };
@@ -2076,6 +2106,9 @@ function renderOllamaBlock(target){
     openModal('modalComment');
   };
   document.getElementById(`ollama-retry2-${target.id}`).onclick = ()=> askOllamaForMix(target);
+  if(prop.buyRecommended){
+    renderBuyRecoBox(`ollama-buyreco-${target.id}`, target, prop.buyReason || "Votre modèle local recommande d'acheter directement cette peinture plutôt que de la mélanger.");
+  }
 }
 
 async function askOllamaForMix(target){
@@ -2093,18 +2126,7 @@ async function askOllamaForMix(target){
   renderOllamaBlock(target);
 
   const cfg = getOllamaConfig();
-  const listText = pool.map(p=>`- ${p.name} (${p.brand}, ${p.hex})`).join('\n');
-  const prompt = `Tu es un expert en peinture de figurines Warhammer. Je veux approcher la teinte suivante avec les peintures que je possède déjà.
-
-Teinte cible : ${target.name} (${target.hex}, gamme ${target.range})
-
-Peintures disponibles (utilise UNIQUEMENT des noms de cette liste, recopiés exactement) :
-${listText}
-
-Propose un mélange de 2 à 4 peintures maximum parmi cette liste, avec un pourcentage pour chacune (total 100).
-
-Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises markdown, au format exact :
-{"components":[{"name":"nom exact tel que dans la liste","pct":nombre}],"note":"courte astuce de mélange en une phrase, en français"}`;
+  const prompt = buildMixPrompt(target, pool);
 
   try{
     const res = await fetch(ollamaBaseUrl(cfg) + '/api/chat', {
@@ -2134,7 +2156,10 @@ Réponds UNIQUEMENT avec un objet JSON strict, sans texte autour, sans balises m
     }
     const mixedHex = mixedHexFromComponents(components);
     const distance = colorDistance(mixedHex, target.hex);
-    ollamaMixCache[target.id] = { loading:false, error:null, result:{ components, note: parsed.note||'', distance } };
+    ollamaMixCache[target.id] = { loading:false, error:null, result:{
+      components, note: parsed.note||'', distance,
+      buyRecommended: parsed.buyRecommended === true, buyReason: parsed.buyReason || ''
+    } };
   }catch(e){
     const msg = (e.message || "Impossible de contacter le modèle local.") + " Si vous êtes sur l'iPad, vérifiez Tailscale Serve et le tailnet. Si vous êtes sur le Mac avec l'adresse localhost, vérifiez que Ollama tourne (ollama serve).";
     ollamaMixCache[target.id] = { loading:false, error: msg, result:null };
