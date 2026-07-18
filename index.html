@@ -623,6 +623,11 @@ nav.tabbar{
       <b style="color:var(--brass);">Depuis l'iPad</b>, Ollama doit être joignable en HTTPS (Safari bloque HTTPS→HTTP) — utilisez <b>Tailscale Serve</b> : <span class="mono" style="color:var(--brass);">tailscale serve https / http://localhost:11434</span> sur le Mac, puis l'adresse <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span> ci-dessous, port 443 (détails dans le README).
       <br>• <b style="color:var(--brass);">Depuis le Mac lui-même</b> (là où tourne Ollama), pas besoin de Tailscale : les navigateurs traitent <span class="mono">localhost</span> comme une origine sécurisée même en HTTP. Utilisez le raccourci ci-dessous.
     </div>
+    <div class="lookup-status warn" style="margin-bottom:14px;">
+      <b>Étape obligatoire, dans les deux cas</b> : Ollama refuse par défaut les requêtes venant d'un autre site que 127.0.0.1. Sur le Mac, quittez Ollama, puis dans le Terminal :
+      <br><span class="mono" style="color:var(--brass);">launchctl setenv OLLAMA_ORIGINS "https://votre-pseudo.github.io"</span>
+      <br>(remplacez par l'adresse exacte de votre appli), puis relancez Ollama. Détails et astuce pour la rendre permanente dans le README.
+    </div>
     <button type="button" class="btn small" id="ollamaUseLocalBtn" style="margin-bottom:14px;">📍 Utiliser Ollama en local (sur ce Mac)</button>
     <div class="field">
       <label>Adresse ou nom d'hôte du Mac</label>
@@ -2011,7 +2016,7 @@ document.getElementById('ollamaTestBtn').onclick = async ()=>{
     statusEl.textContent = names ? `Connecté. Modèles détectés : ${names}` : 'Connecté, mais aucun modèle installé détecté.';
   }catch(e){
     statusEl.className = 'lookup-status err';
-    statusEl.textContent = "Connexion impossible. Si vous êtes sur l'iPad, vérifiez que Tailscale Serve tourne sur le Mac et que les deux appareils sont bien sur le même tailnet. Si vous êtes sur le Mac lui-même avec l'adresse localhost, vérifiez que Ollama est bien lancé (ollama serve).";
+    statusEl.textContent = "Connexion impossible. Vérifiez d'abord que Ollama tourne (ollama serve). Cause la plus fréquente : OLLAMA_ORIGINS n'autorise pas l'adresse de cette appli (voir l'avertissement ci-dessus et le README). Si vous êtes sur l'iPad, vérifiez aussi Tailscale Serve et le tailnet.";
   }
 };
 document.getElementById('ollamaSaveBtn').onclick = ()=>{
@@ -2161,7 +2166,7 @@ async function askOllamaForMix(target){
       buyRecommended: parsed.buyRecommended === true, buyReason: parsed.buyReason || ''
     } };
   }catch(e){
-    const msg = (e.message || "Impossible de contacter le modèle local.") + " Si vous êtes sur l'iPad, vérifiez Tailscale Serve et le tailnet. Si vous êtes sur le Mac avec l'adresse localhost, vérifiez que Ollama tourne (ollama serve).";
+    const msg = (e.message || "Impossible de contacter le modèle local.") + " Vérifiez qu'Ollama tourne, et surtout que OLLAMA_ORIGINS autorise l'adresse de cette appli (cause la plus fréquente — voir la fenêtre de configuration et le README). Si vous êtes sur l'iPad, vérifiez aussi Tailscale Serve et le tailnet.";
     ollamaMixCache[target.id] = { loading:false, error: msg, result:null };
   }
   renderOllamaBlock(target);
