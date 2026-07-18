@@ -620,15 +620,14 @@ nav.tabbar{
     <h3>Mélange suggéré par votre Mac</h3>
     <div class="modal-sub">Appelle un modèle Ollama installé sur votre Mac. Rien ne quitte votre réseau, aucun compte, aucune facturation.</div>
     <div class="lookup-status" style="margin-bottom:14px;">
-      <b style="color:var(--brass);">Depuis l'iPad</b>, Ollama doit être joignable en HTTPS (Safari bloque HTTPS→HTTP) — utilisez <b>Tailscale Serve</b> : <span class="mono" style="color:var(--brass);">tailscale serve https / http://localhost:11434</span> sur le Mac, puis l'adresse <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span> ci-dessous, port 443 (détails dans le README).
-      <br>• <b style="color:var(--brass);">Depuis le Mac lui-même</b> (là où tourne Ollama), pas besoin de Tailscale : les navigateurs traitent <span class="mono">localhost</span> comme une origine sécurisée même en HTTP. Utilisez le raccourci ci-dessous.
+      Configuration durcie via <b style="color:var(--brass);">Tailscale</b> : Ollama n'écoute que sur le réseau privé, jamais sur le Wi-Fi ni internet. Le guide complet, étape par étape, est dans le README.
+      <br>Que vous soyez sur l'iPad ou le Mac, utilisez la même adresse : <span class="mono" style="color:var(--brass);">nom-du-mac.tailXXXX.ts.net</span>, port <span class="mono">443</span>.
     </div>
     <div class="lookup-status warn" style="margin-bottom:14px;">
-      <b>Étape obligatoire, dans les deux cas</b> : Ollama refuse par défaut les requêtes venant d'un autre site que 127.0.0.1. Sur le Mac, quittez Ollama, puis dans le Terminal :
-      <br><span class="mono" style="color:var(--brass);">launchctl setenv OLLAMA_ORIGINS "https://votre-pseudo.github.io"</span>
-      <br>(remplacez par l'adresse exacte de votre appli), puis relancez Ollama. Détails et astuce pour la rendre permanente dans le README.
+      <b>Côté Mac</b>, lancez Ollama lié au réseau privé et autorisant votre appli (voir README, étape 3) :
+      <br><span class="mono" style="color:var(--brass);">OLLAMA_HOST=100.x.y.z:11434 OLLAMA_ORIGINS="https://votre-pseudo.github.io" ollama serve</span>
+      <br>puis exposez-le en HTTPS : <span class="mono" style="color:var(--brass);">tailscale serve --bg https / http://localhost:11434</span>
     </div>
-    <button type="button" class="btn small" id="ollamaUseLocalBtn" style="margin-bottom:14px;">📍 Utiliser Ollama en local (sur ce Mac)</button>
     <div class="field">
       <label>Adresse ou nom d'hôte du Mac</label>
       <input type="text" id="ollamaHost" placeholder="ex. mon-mac.tailnet.ts.net ou localhost">
@@ -1954,9 +1953,13 @@ function hasOllamaConfig(){
   return !!(c && c.host && c.port && c.model);
 }
 function ollamaBaseUrl(cfg){
-  const isLocalLoopback = cfg.host === 'localhost' || cfg.host === '127.0.0.1';
-  const scheme = isLocalLoopback ? 'http' : 'https';
-  return `${scheme}://${cfg.host}:${cfg.port}`;
+  const host = cfg.host || '';
+  const isLoopback = host === 'localhost' || host === '127.0.0.1';
+  // Une adresse IP directe (Tailscale 100.x, ou IP locale) n'a pas de certificat HTTPS :
+  // on l'appelle en HTTP. Un nom d'hôte (ex. *.ts.net) passe en HTTPS via le certificat Tailscale.
+  const isRawIp = /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(host);
+  const scheme = (isLoopback || isRawIp) ? 'http' : 'https';
+  return `${scheme}://${host}:${cfg.port}`;
 }
 document.getElementById('ollamaModel').addEventListener('change', (e)=>{
   document.getElementById('ollamaCustomModelField').style.display = e.target.value === 'custom' ? 'block' : 'none';
@@ -1981,14 +1984,6 @@ function openOllamaModal(){
   document.getElementById('ollamaStatus').style.display = 'none';
   openModal('modalOllama');
 }
-document.getElementById('ollamaUseLocalBtn').onclick = ()=>{
-  document.getElementById('ollamaHost').value = 'localhost';
-  document.getElementById('ollamaPort').value = '11434';
-  const statusEl = document.getElementById('ollamaStatus');
-  statusEl.style.display = 'block';
-  statusEl.className = 'lookup-status';
-  statusEl.textContent = "Adresse locale pré-remplie. Ne fonctionne que si vous ouvrez cette appli depuis le Mac où tourne Ollama — sur l'iPad, utilisez plutôt l'adresse Tailscale.";
-};
 function readOllamaFormModel(){
   const sel = document.getElementById('ollamaModel').value;
   return sel === 'custom' ? document.getElementById('ollamaCustomModel').value.trim() : sel;
