@@ -1291,14 +1291,47 @@ function colorDistance(hexA, hexB){
 
 const TRIPLE_RATIOS = [[0.34,0.33,0.33],[0.5,0.25,0.25],[0.25,0.5,0.25],[0.25,0.25,0.5],[0.6,0.2,0.2],[0.2,0.6,0.2],[0.2,0.2,0.6]];
 
-// Gammes exclues du mélange : ce sont des produits techniques (textures, médiums, effets),
-// pas des teintes destinées à être mélangées pour approcher une autre couleur.
-const NON_MIXING_RANGES = ['Technical','Texture','Spray'];
+// Gammes exclues du mélange dans tous les cas : ni cible, ni ingrédient. Ce sont des
+// produits techniques (textures, médiums, effets, sprays, brossage à sec) qui ne
+// s'inscrivent pas dans une logique de mélange de teintes.
+const NON_MIXING_RANGES = ['Technical','Texture','Spray','Dry','Glaze'];
 
-function isMixableCandidate(paint, targetIsMetallic){
+// Regroupe les gammes (toutes marques confondues) en trois familles hiérarchiques :
+// - "baselayer" : Base/Layer Citadel et leurs équivalents Vallejo (Model Color) / Army Painter (Warpaints)
+// - "contrast"  : Contrast Citadel
+// - "shade"     : Shade Citadel et son équivalent Vallejo (Wash FX)
+const RANGE_GROUP = {
+  'Base': 'baselayer',
+  'Layer': 'baselayer',
+  'Model Color': 'baselayer',
+  'Warpaints': 'baselayer',
+  'Contrast': 'contrast',
+  'Shade': 'shade',
+  'Wash FX': 'shade'
+};
+function rangeGroup(range){
+  return RANGE_GROUP[range] || null;
+}
+// Détermine, pour une teinte cible donnée, quelles familles de gammes ont le droit
+// de fournir des ingrédients :
+// - cible Base/Layer (non métallique) : uniquement Base/Layer (+ équivalents Vallejo/Army Painter)
+// - cible Contrast : Base/Layer + Contrast
+// - cible Shade : Base/Layer + Contrast + Shade
+// - toute autre gamme (Spray, Dry, Technical, Texture, Glaze) : aucun mélange proposé
+function allowedGroupsForTarget(target){
+  const g = rangeGroup(target.range);
+  if(g === 'baselayer') return ['baselayer'];
+  if(g === 'contrast') return ['baselayer','contrast'];
+  if(g === 'shade') return ['baselayer','contrast','shade'];
+  return [];
+}
+function isMixableCandidate(paint, target){
   if(paint.mixable === false) return false;
-  if(NON_MIXING_RANGES.includes(paint.range)) return false;
-  if(paint.metallic && !targetIsMetallic) return false;
+  const pg = rangeGroup(paint.range);
+  if(!pg) return false;
+  if(!allowedGroupsForTarget(target).includes(pg)) return false;
+  // Les métalliques ne servent à copier que d'autres teintes métalliques.
+  if(paint.metallic && !target.metallic) return false;
   return true;
 }
 function signatureOf(components){
@@ -1308,9 +1341,15 @@ function signatureOf(components){
 // Explore toutes les combinaisons simples/doubles/triples parmi "owned" et renvoie
 // une liste triée de mélanges candidats DISTINCTS (une seule variante de ratio conservée
 // par combinaison de pots, la plus proche de la teinte cible).
-function collectMixCandidates(targetHex, owned){
+// isValidRatio(components) : filtre optionnel appliqué PENDANT la recherche du meilleur
+// ratio pour chaque combinaison (pas après coup), afin qu'une contrainte comme "au moins
+// 50% de Contrast" fasse chercher le meilleur ratio qui la respecte, plutôt que de
+// rejeter toute la combinaison si le ratio idéal ne la respecte pas.
+function collectMixCandidates(targetHex, owned, isValidRatio){
+  const valid = isValidRatio || (()=>true);
   const bestByCombo = new Map();
   const consider = (components, distance)=>{
+    if(!valid(components)) return;
     const sig = signatureOf(components);
     const prev = bestByCombo.get(sig);
     if(!prev || distance < prev.distance){
@@ -1327,11 +1366,15 @@ function collectMixCandidates(targetHex, owned){
       const c1 = hexToRgb(owned[i].hex), c2 = hexToRgb(owned[j].hex);
       let bestRatio = null, bestD = Infinity;
       for(let ratio=10; ratio<=90; ratio+=10){
+        const comps = [{paint:owned[i], pct:ratio},{paint:owned[j], pct:100-ratio}];
+        if(!valid(comps)) continue;
         const mixed = rgbToHex(mixRgb(c1,c2,ratio));
         const d = colorDistance(mixed, targetHex);
         if(d < bestD){ bestD = d; bestRatio = ratio; }
       }
-      consider([{paint:owned[i], pct:bestRatio},{paint:owned[j], pct:100-bestRatio}], bestD);
+      if(bestRatio !== null){
+        consider([{paint:owned[i], pct:bestRatio},{paint:owned[j], pct:100-bestRatio}], bestD);
+      }
     }
   }
 
@@ -1344,15 +1387,23 @@ function collectMixCandidates(targetHex, owned){
           const c3 = hexToRgb(owned[k].hex);
           let bestSet = null, bestD = Infinity;
           for(const ratioSet of TRIPLE_RATIOS){
+            const comps = [
+              {paint:owned[i], pct:Math.round(ratioSet[0]*100)},
+              {paint:owned[j], pct:Math.round(ratioSet[1]*100)},
+              {paint:owned[k], pct:Math.round(ratioSet[2]*100)}
+            ];
+            if(!valid(comps)) continue;
             const mixed = rgbToHex(mixRgbTriple(c1,c2,c3,ratioSet[0],ratioSet[1],ratioSet[2]));
             const d = colorDistance(mixed, targetHex);
             if(d < bestD){ bestD = d; bestSet = ratioSet; }
           }
-          consider([
-            {paint:owned[i], pct:Math.round(bestSet[0]*100)},
-            {paint:owned[j], pct:Math.round(bestSet[1]*100)},
-            {paint:owned[k], pct:Math.round(bestSet[2]*100)}
-          ], bestD);
+          if(bestSet !== null){
+            consider([
+              {paint:owned[i], pct:Math.round(bestSet[0]*100)},
+              {paint:owned[j], pct:Math.round(bestSet[1]*100)},
+              {paint:owned[k], pct:Math.round(bestSet[2]*100)}
+            ], bestD);
+          }
         }
       }
     }
@@ -1365,12 +1416,23 @@ function collectMixCandidates(targetHex, owned){
 // 1) la meilleure approximation toutes marques possédées confondues,
 // 2) une version 100% Citadel (si elle diffère et si des peintures Citadel sont disponibles),
 // 3) une alternative (combinaison différente) pour laisser le choix.
+// Contraintes supplémentaires sur la composition d'un mélange, au-delà du simple choix
+// des ingrédients autorisés : pour copier une teinte Contrast, le mélange doit inclure
+// au moins une peinture Contrast à hauteur d'au moins 50% (sinon l'effet de glacis propre
+// aux Contrast ne peut pas être reproduit fidèlement).
+function satisfiesMixConstraints(target, components){
+  if(rangeGroup(target.range) === 'contrast'){
+    return components.some(c => rangeGroup(c.paint.range) === 'contrast' && c.pct >= 50);
+  }
+  return true;
+}
+
 function buildMixProposals(target){
-  const targetIsMetallic = !!target.metallic;
-  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, targetIsMetallic));
+  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, target));
   if(pool.length === 0) return [];
 
-  const allCandidates = collectMixCandidates(target.hex, pool);
+  const isValidRatio = (components) => satisfiesMixConstraints(target, components);
+  const allCandidates = collectMixCandidates(target.hex, pool, isValidRatio);
   if(allCandidates.length === 0) return [];
 
   const proposals = [];
@@ -1388,7 +1450,7 @@ function buildMixProposals(target){
   if(!bestIsAllCitadel){
     const citadelPool = pool.filter(p=>p.brand==='Citadel');
     if(citadelPool.length > 0){
-      const citadelCandidates = collectMixCandidates(target.hex, citadelPool);
+      const citadelCandidates = collectMixCandidates(target.hex, citadelPool, isValidRatio);
       if(citadelCandidates.length > 0){
         const topCitadel = citadelCandidates[0];
         const sig = signatureOf(topCitadel.components);
@@ -1638,7 +1700,7 @@ function renderSuggestions(){
   const missing = paints.filter(p=> p.brand==='Citadel' && p.mixable!==false && !NON_MIXING_RANGES.includes(p.range) && !p.owned && (!q || p.name.toLowerCase().includes(q)))
     .sort((a,b)=>a.name.localeCompare(b.name));
   const el = document.getElementById('suggestList');
-  const owned = paints.filter(p=>p.owned && isMixableCandidate(p, false));
+  const owned = paints.filter(p=>p.owned && p.mixable!==false && rangeGroup(p.range));
 
   if(missing.length===0){
     const msg = owned.length
@@ -1847,10 +1909,13 @@ function buildMixPrompt(target, pool){
   const listText = pool.map(p=>`- ${p.name} (${p.brand}, ${p.hex})`).join('\n');
   const ctx = (projectContext[target.id]||'').trim();
   const ctxBlock = ctx ? `\nContexte du projet donné par l'utilisateur : ${ctx}\n` : '';
+  const contrastRule = target.range === 'Contrast'
+    ? `\nContrainte impérative : la teinte cible est une peinture Contrast. Le mélange DOIT inclure au moins une peinture Contrast à hauteur d'AU MOINS 50% du mélange (une combinaison de Base/Layer seules, ou une Contrast minoritaire, ne peut pas reproduire l'effet de glacis propre aux Contrast).\n`
+    : '';
   return `Tu es un expert en peinture de figurines Warhammer. Je veux approcher la teinte suivante avec les peintures que je possède déjà.
 
 Teinte cible : ${target.name} (${target.hex}, gamme ${target.range})
-${ctxBlock}
+${ctxBlock}${contrastRule}
 Peintures disponibles (utilise UNIQUEMENT des noms de cette liste, recopiés exactement) :
 ${listText}
 
@@ -1866,7 +1931,7 @@ async function askClaudeForMix(target){
     openModal('modalClaudeKey');
     return;
   }
-  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, !!target.metallic));
+  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, target));
   if(pool.length === 0){
     claudeMixCache[target.id] = { loading:false, error:"Aucune peinture éligible en stock pour construire un mélange.", result:null };
     renderClaudeBlock(target);
@@ -2107,7 +2172,7 @@ async function askOllamaForMix(target){
     openOllamaModal();
     return;
   }
-  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, !!target.metallic));
+  const pool = paints.filter(p=> p.owned && isMixableCandidate(p, target));
   if(pool.length === 0){
     ollamaMixCache[target.id] = { loading:false, error:"Aucune peinture éligible en stock pour construire un mélange.", result:null };
     renderOllamaBlock(target);
